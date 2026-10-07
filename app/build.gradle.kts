@@ -9,4 +9,4 @@ android { namespace = "com.origin.osd"; compileSdk = 35
 
 chaquopy { defaultConfig { version = "3.13" } }
 
-dependencies { implementation("androidx.appcompat:appcompat:1.7.1"); implementation("dev.ffmpegkit-maintained:ffmpeg-kit-full:8.1.9") }
+dependencies { implementation("androidx.appcompat:appcompat:1.7.1"); implementation("dev.ffmpegkit-maintained:ffmpeg-kit-full:8.1.7") }
