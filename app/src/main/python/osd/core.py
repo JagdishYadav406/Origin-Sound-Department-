@@ -4,6 +4,13 @@ from pathlib import Path
 
 class OSDRunError(RuntimeError): pass
 
+def _android_bridge():
+    try:
+        from java import jclass
+        return jclass("com.origin.osd.FfmpegBridge")
+    except Exception:
+        return None
+
 def _write_failure_evidence(out, *, lifecycle, error, src=None, run_id=None, staging_dir=None):
     out=Path(out); out.mkdir(parents=True, exist_ok=True)
     report={
@@ -28,6 +35,10 @@ def _write_failure_evidence(out, *, lifecycle, error, src=None, run_id=None, sta
     return report
 
 def _run(cmd):
+    bridge=_android_bridge()
+    if bridge is not None:
+        try: return bridge.execute([str(x) for x in cmd])
+        except Exception as exc: raise OSDRunError(str(exc))
     p=subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if p.returncode: raise OSDRunError(p.stderr[-4000:])
     return p.stdout
@@ -39,6 +50,10 @@ def sha256(path):
     return h.hexdigest()
 
 def ffprobe(path):
+    bridge=_android_bridge()
+    if bridge is not None:
+        try: return json.loads(bridge.probe(["-v","error","-show_streams","-show_format","-of","json",str(path)]))
+        except Exception as exc: raise OSDRunError(str(exc))
     out=_run(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(path)])
     return json.loads(out)
 
@@ -123,9 +138,15 @@ def inspect_media(path):
 
 def loudness(path):
     cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose','-f','null','-']
-    p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    if p.returncode: raise OSDRunError(p.stderr[-4000:])
-    lines=[x for x in p.stderr.splitlines() if 'I:' in x and 'LUFS' in x]
+    bridge=_android_bridge()
+    if bridge is not None:
+        try: stderr=bridge.execute_stderr([str(x) for x in cmd])
+        except Exception as exc: raise OSDRunError(str(exc))
+    else:
+        p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        if p.returncode: raise OSDRunError(p.stderr[-4000:])
+        stderr=p.stderr
+    lines=[x for x in stderr.splitlines() if 'I:' in x and 'LUFS' in x]
     integrated=None
     for x in reversed(lines):
         try: integrated=float(x.split('I:')[1].split('LUFS')[0].strip())
@@ -178,10 +199,16 @@ def master_audio(src,out,target_lufs=-16):
 
 def true_peak(path):
     cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose','-f','null','-']
-    p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    if p.returncode: raise OSDRunError(p.stderr[-4000:])
+    bridge=_android_bridge()
+    if bridge is not None:
+        try: stderr=bridge.execute_stderr([str(x) for x in cmd])
+        except Exception as exc: raise OSDRunError(str(exc))
+    else:
+        p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        if p.returncode: raise OSDRunError(p.stderr[-4000:])
+        stderr=p.stderr
     vals=[]
-    for line in p.stderr.splitlines():
+    for line in stderr.splitlines():
         if 'Peak:' in line and 'dBFS' in line:
             try: vals.append(float(line.split('Peak:')[1].split('dBFS')[0].strip()))
             except Exception: pass
