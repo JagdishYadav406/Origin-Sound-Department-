@@ -23,11 +23,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Install Gradle
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle
-          gradle --version
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
       - name: Build release APK
         run: gradle :app:assembleRelease --no-daemon --stacktrace
       - name: Verify APK
