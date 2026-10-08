@@ -137,7 +137,7 @@ def inspect_media(path):
             'media_validation':{'status':'OK' if timing['timing_status']=='OK' else 'TIMING_IRREGULAR','classification':'VALID_MEDIA' if timing['timing_status']=='OK' else 'TIMING_IRREGULAR'}}
 
 def loudness(path):
-    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose','-f','null','-']
+    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=peak=true:framelog=verbose','-f','null','-']
     bridge=_android_bridge()
     if bridge is not None:
         try: stderr=bridge.execute_stderr([str(x) for x in cmd])
