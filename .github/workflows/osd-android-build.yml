@@ -44,3 +44,5 @@ jobs:
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/apk/release/SHA256SUMS.txt
+
+# Build workflow is intentionally kept reproducible for release verification.
