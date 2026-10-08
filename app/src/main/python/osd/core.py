@@ -338,10 +338,17 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
         report['delivery_status']='DELIVERABLE' if verified and report['qc']['checks']['all_pass'] else 'BLOCKED'
         lifecycle.append('VERIFIED' if verified else 'FAILED'); report['execution_lifecycle']=lifecycle
         if enforce_qc and not report['qc']['checks']['all_pass']: raise OSDRunError('Final QC failed; delivery blocked: '+json.dumps(report['qc']['checks'],sort_keys=True))
+        # Materialize the verified final artifact outside the temporary staging directory.
+        # The staging directory is deleted after commit, so the deliverable must be copied first.
+        delivered_final=out/('OSD-final.webm' if inspection['video'] else 'OSD-final.wav')
+        shutil.copy2(final, delivered_final)
+        delivered_record=_artifact_record(delivered_final)
+        report['delivery_artifact']=delivered_record
         final_names=[p.name for p in [original,processed,mastered,final]]
         if mix_source != src: final_names.append(mix_source.name)
+        final_names.append(delivered_final.name)
         commit_journal=_commit_artifacts(out,stage,final_names,run_id); report['staging_committed']=commit_journal['status']=='COMMITTED'
-        report_path=out/'evidence.json'; report_path.write_text(json.dumps(report,indent=2)); (out/'EVIDENCE-SHA256.txt').write_text(sha256(report_path)+'  evidence.json\n'); (out/'DELIVERY-READY.txt').write_text('OSD delivery verified and ready. See evidence.json and EVIDENCE-SHA256.txt.\n')
+        report_path=out/'evidence.json'; report_path.write_text(json.dumps(report,indent=2)); (out/'EVIDENCE-SHA256.txt').write_text(sha256(report_path)+'  evidence.json\n'); (out/'DELIVERY-READY.txt').write_text('OSD delivery verified and ready. Final artifact: '+delivered_final.name+'; see evidence.json and EVIDENCE-SHA256.txt.\n')
         manifest['status']='COMMITTED'; manifest['completed_stages'].append('commit'); _write_resume_manifest(stage,manifest); shutil.rmtree(stage)
         return report
     except Exception as exc:
