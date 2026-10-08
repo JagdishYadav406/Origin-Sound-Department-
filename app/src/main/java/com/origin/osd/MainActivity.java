@@ -2,6 +2,7 @@ package com.origin.osd;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -10,6 +11,9 @@ import android.provider.OpenableColumns;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.ScrollView;
+import android.graphics.Typeface;
+import android.view.ViewGroup;
 
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
@@ -31,22 +35,42 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         root = new LinearLayout(this);
+        root.setBackgroundColor(0xFF0B0F14);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(32, 40, 32, 32);
 
         TextView title = new TextView(this);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setText("OSD 1.20.0");
         title.setTextSize(28);
         root.addView(title);
+
+        TextView access = new TextView(this);
+        access.setText("EASY ACCESS");
+        access.setTextSize(12);
+        access.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        access.setPadding(0, 24, 0, 8);
+        root.addView(access);
 
         status = new TextView(this);
         status.setText("READY — OSD engine connected");
         root.addView(status);
 
+        TextView help = new TextView(this);
+        help.setText("Select local audio/video → OSD processes it → QC verifies loudness, true peak and delivery evidence.");
+        help.setTextSize(14);
+        help.setPadding(0, 8, 0, 16);
+        root.addView(help);
+
         pick = new Button(this);
         pick.setText("Choose audio or video");
         pick.setOnClickListener(v -> chooseMedia());
         root.addView(pick);
+
+        Button output = new Button(this);
+        output.setText("Open OSD output folder");
+        output.setOnClickListener(v -> openOutputFolder());
+        root.addView(output);
         setContentView(root);
     }
 
@@ -127,6 +151,18 @@ public class MainActivity extends Activity {
             "run_pipeline", input.getAbsolutePath(), output.getAbsolutePath(),
             -16.0, null, null, null, 0.0, true, false
         );
+    }
+
+    private void openOutputFolder() {
+        File dir = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setDataAndType(Uri.fromFile(dir), "*/*");
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try { startActivity(i); } catch (ActivityNotFoundException e) {
+            status.setText("OSD output folder: " + dir.getAbsolutePath());
+        } catch (Exception e) {
+            status.setText("OSD output folder: " + dir.getAbsolutePath());
+        }
     }
 
     @Override protected void onDestroy() {
