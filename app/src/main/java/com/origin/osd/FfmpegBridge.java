@@ -3,6 +3,7 @@ package com.origin.osd;
 import com.arthenica.ffmpegkit.FFmpegKit;
 import com.arthenica.ffmpegkit.FFprobeKit;
 import com.arthenica.ffmpegkit.ReturnCode;
+import com.arthenica.ffmpegkit.Session;
 
 public final class FfmpegBridge {
     private FfmpegBridge() {}
@@ -21,21 +22,21 @@ public final class FfmpegBridge {
     }
 
     public static String execute(String[] args) {
-        var session = FFmpegKit.execute(command(args));
+        Session session = FFmpegKit.execute(command(args));
         if (ReturnCode.isSuccess(session.getReturnCode())) return session.getOutput();
         String fail = session.getFailStackTrace();
         throw new RuntimeException(fail == null ? "FFmpeg execution failed" : fail);
     }
 
     public static String execute_stderr(String[] args) {
-        var session = FFmpegKit.execute(command(args));
+        Session session = FFmpegKit.execute(command(args));
         if (ReturnCode.isSuccess(session.getReturnCode())) return session.getOutput() + "\n" + session.getLogsAsString();
         String fail = session.getFailStackTrace();
         throw new RuntimeException(fail == null ? "FFmpeg execution failed" : fail);
     }
 
     public static String probe(String[] args) {
-        var session = FFprobeKit.execute(command(args));
+        Session session = FFprobeKit.execute(command(args));
         if (ReturnCode.isSuccess(session.getReturnCode())) return session.getOutput();
         String fail = session.getFailStackTrace();
         throw new RuntimeException(fail == null ? "FFprobe execution failed" : fail);
