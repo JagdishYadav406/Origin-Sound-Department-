@@ -198,7 +198,7 @@ def master_audio(src,out,target_lufs=-16):
     _run(['ffmpeg','-y','-hide_banner','-i',str(src),'-af',f'loudnorm=I={float(target_lufs)}:TP=-1.0:LRA=11:print_format=summary',str(out)])
 
 def true_peak(path):
-    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose','-f','null','-']
+    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose:peak=true','-f','null','-']
     bridge=_android_bridge()
     if bridge is not None:
         try: stderr=bridge.execute_stderr([str(x) for x in cmd])
