@@ -15,7 +15,7 @@ on:
       - 'OSD_*.md'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: osd-android-${{ github.workflow }}-${{ github.ref }}
