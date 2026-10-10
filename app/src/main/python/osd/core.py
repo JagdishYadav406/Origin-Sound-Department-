@@ -207,34 +207,16 @@ def true_peak(path):
         p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         if p.returncode: raise OSDRunError(p.stderr[-4000:])
         stderr=p.stderr
-    # FFmpeg versions vary: true peak can be inline or a heading followed by
-    # "Peak: ... dBFS". Parse only the true-peak section, never sample peak.
-    lines=stderr.splitlines()
+    # QC must use oversampled true peak, never substitute sample peak.
     vals=[]
-    for i,line in enumerate(lines):
+    for line in stderr.splitlines():
         lower=line.lower()
-        if 'true peak:' not in lower:
-            continue
-        tail=line.split(':',1)[1].strip()
-        if 'dbfs' in tail.lower():
-            token=tail.lower().split('dbfs',1)[0].strip().split()[-1]
+        if 'true peak:' in lower and 'dbfs' in lower:
             try:
-                vals.append(float(token))
-                continue
+                value=line[lower.index('true peak:') + len('true peak:'):].split('dBFS')[0].strip()
+                vals.append(float(value))
             except (ValueError, IndexError):
                 pass
-        for following in lines[i+1:i+5]:
-            text=following.strip()
-            low=text.lower()
-            if low.startswith('peak:') and 'dbfs' in low:
-                token=text.split(':',1)[1].lower().split('dbfs',1)[0].strip()
-                try:
-                    vals.append(float(token))
-                except ValueError:
-                    pass
-                break
-            if low.startswith('sample peak:') or low.startswith('true peak:'):
-                break
     return max(vals) if vals else None
 
 def qc(path,is_video=False,expected_duration=None,target_lufs=-16):
