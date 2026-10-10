@@ -301,14 +301,27 @@ public class MainActivity extends Activity {
         File inputDir = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-input");
         if (!inputDir.exists() && !inputDir.mkdirs()) throw new IllegalStateException("Unable to create OSD input directory");
         File input = new File(inputDir, name);
+        MessageDigest importDigest = MessageDigest.getInstance("SHA-256");
+        long importedBytes = 0;
         try (InputStream in = getContentResolver().openInputStream(uri);
              FileOutputStream out = new FileOutputStream(input, false)) {
             if (in == null) throw new IllegalStateException("Android could not open the selected media");
             byte[] buffer = new byte[1024 * 1024];
             int n;
-            while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+            while ((n = in.read(buffer)) != -1) {
+                out.write(buffer, 0, n);
+                importDigest.update(buffer, 0, n);
+                importedBytes += n;
+            }
+            out.flush();
         }
         if (!input.isFile() || input.length() == 0) throw new IllegalStateException("Selected media could not be copied into OSD");
+        StringBuilder importedHash = new StringBuilder();
+        for (byte b : importDigest.digest()) importedHash.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        if (input.length() != importedBytes || !sha256(input).equalsIgnoreCase(importedHash.toString())) {
+            deleteIfExists(input);
+            throw new IllegalStateException("Media import verification failed — copied file size or SHA-256 does not match the selected source");
+        }
         return input;
     }
 
