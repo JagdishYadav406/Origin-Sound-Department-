@@ -25,3 +25,17 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
 - Tested artifact merge commit: 75ab6ff26621f6509d0ae034c6534ede13d84db7 (PR merge ref). APK size: 109,381,736 bytes. APK SHA-256: 0dd0211f4b7ddc79b263c1a4e4af786357a7e114f5a9929db7ba14dd9499103e. Source archive SHA-256: 2a0e2bd986f7f3a048733ce3090ca2f614c3e1651229f9ee6de080360e62ad6a.
 - Independently downloaded the artifact ZIP and extracted the APK in the current working session; ZIP integrity and APK SHA-256 match were verified locally. APK contains DEX, AndroidManifest, Chaquopy assets, and native libraries for arm64-v8a and x86_64.
 - Still UNKNOWN: install/launch on the user's phone, whether Android FFmpeg calls run correctly end-to-end on-device, media output playback, QC behavior on representative files, export usability, and whether installation over an existing build is signature-compatible. Do not mark OSD complete until these are tested.
+
+
+## 2026-10-10 — Main build run #32 artifact independently checked
+
+- Canonical repository: https://github.com/JagdishYadav406/Origin-Sound-Department-
+- Main commit: 591cbb2d8124052227a1421f8b1f9260402fd832 ("Block unverified OSD delivery markers").
+- Workflow run #32: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38053680006 — success; Python regression tests, release APK build, APK/provenance verification, and artifact upload completed.
+- Artifact: OSD-1.20.0-591cbb2d8124052227a1421f8b1f9260402fd832; GitHub artifact ID 11669898114; artifact ZIP size 51,645,501 bytes; expiry 2027-01-08.
+- Downloaded artifact ZIP SHA-256: c88c5fe381078d2ab806218bafd5b3e0fd8b2b61bdb235679db5f923d65d05ab; ZIP integrity passed.
+- Extracted APK: app-release.apk; size 109,381,736 bytes; SHA-256 b27d8177694862ce713cf83d6547330f8ad1f08ea6b278ab56b661c4493d155e; matches SHA256SUMS.txt. APK ZIP integrity and AndroidManifest presence passed. CI provenance states APK signature verification step completed successfully.
+- Build metadata confirms source commit, Java 17.0.20.1, Python 3.13.16, Gradle 8.13, and explicitly records device_install_test=NOT_RUN_BY_CI and full_audio_workflow_test=NOT_RUN_BY_CI.
+- Android artifact file was materialized in the current ChatGPT runtime at /mnt/data/OSD-1.20.0-main-591cbb2d8124052227a1421f8b1f9260402fd832.apk; this runtime copy is not a durable external backup.
+- Remaining acceptance tests: install/launch on Samsung Galaxy A20; real audio import and processing; verify output playback/export; test invalid input, processing failure, and missing QC measurements. These remain UNKNOWN until tested on-device.
+- PR #9 (multiline true-peak parser) remains open and marked non-mergeable; main history already contains commit 95de0481b4c7fcf8df0fc51b3d0553a09c3adcde "Fix true-peak QC parser unit handling". Do not merge the stale PR blindly; inspect whether it is redundant or still contributes a needed regression before closing or updating it.
