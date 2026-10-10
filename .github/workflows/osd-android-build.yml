@@ -67,7 +67,7 @@ jobs:
           # The uploaded artifact flattens files to the artifact root, so store a basename-only checksum.
           (cd "$OUT" && sha256sum "$(basename "$APK")" | tee SHA256SUMS.txt)
           git archive --format=tar.gz --output="$OUT/OSD-source-${GITHUB_SHA}.tar.gz" "$GITHUB_SHA"
-          sha256sum "$OUT/OSD-source-${GITHUB_SHA}.tar.gz" | tee "$OUT/SOURCE-SHA256SUMS.txt"
+          (cd "$OUT" && sha256sum "OSD-source-${GITHUB_SHA}.tar.gz" | tee SOURCE-SHA256SUMS.txt)
           {
             echo "project=Origin Sound Department"
             echo "version=1.20.0"
