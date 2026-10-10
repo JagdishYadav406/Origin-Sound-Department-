@@ -14,17 +14,17 @@ class TruePeakTests(unittest.TestCase):
     @patch.object(core.subprocess, "run")
     def test_true_peak_uses_true_peak_not_sample_peak(self, run, _bridge):
         run.return_value = Mock(returncode=0, stderr=(
-            "Peak: -2.4 dBFS\\n"
-            "True peak: -0.7 dBFS\\n"
-            "Peak: -1.8 dBFS\\n"
-            "True peak: -0.4 dBFS\\n"
+            "Peak: -2.4 dBFS\n"
+            "True peak: -0.7 dBFS\n"
+            "Peak: -1.8 dBFS\n"
+            "True peak: -0.4 dBFS\n"
         ), stdout="")
         self.assertAlmostEqual(core.true_peak("output.wav"), -0.4)
 
     @patch.object(core, "_android_bridge", return_value=None)
     @patch.object(core.subprocess, "run")
     def test_missing_true_peak_stays_unknown(self, run, _bridge):
-        run.return_value = Mock(returncode=0, stderr="Peak: -0.2 dBFS\\n", stdout="")
+        run.return_value = Mock(returncode=0, stderr="Peak: -0.2 dBFS\n", stdout="")
         self.assertIsNone(core.true_peak("output.wav"))
 
     @patch.object(core, "_android_bridge", return_value=None)
