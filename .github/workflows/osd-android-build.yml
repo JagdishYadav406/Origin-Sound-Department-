@@ -57,15 +57,17 @@ jobs:
           set -euo pipefail
           OUT="app/build/outputs/apk/release"
           mkdir -p "$OUT"
-          APK="$(find "$OUT" -maxdepth 1 -type f -name '*.apk' -size +0c | head -n 1)"
+          APK="$(find "$OUT" -maxdepth 1 -type f -name '*.apk' -size +0c ! -name 'OSD-1.20.0-*.apk' | head -n 1)"
           test -n "$APK"
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           test -n "$SDK_ROOT"
           APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
           "$APKSIGNER" verify --verbose "$APK"
-          # The uploaded artifact flattens files to the artifact root, so store a basename-only checksum.
-          (cd "$OUT" && sha256sum "$(basename "$APK")" | tee SHA256SUMS.txt)
+          RELEASE_APK="$OUT/OSD-1.20.0-${GITHUB_SHA}.apk"
+          cp "$APK" "$RELEASE_APK"
+          "$APKSIGNER" verify --verbose "$RELEASE_APK"
+          (cd "$OUT" && sha256sum "$(basename "$RELEASE_APK")" | tee SHA256SUMS.txt)
           git archive --format=tar.gz --output="$OUT/OSD-source-${GITHUB_SHA}.tar.gz" "$GITHUB_SHA"
           (cd "$OUT" && sha256sum "OSD-source-${GITHUB_SHA}.tar.gz" | tee SOURCE-SHA256SUMS.txt)
           {
@@ -81,24 +83,23 @@ jobs:
             echo "java=$(java -version 2>&1 | head -n 1)"
             echo "python=$(python --version 2>&1)"
             echo "gradle=8.13"
-            echo "apk_relative_path=$APK"
-            echo "apk_bytes=$(stat -c '%s' "$APK")"
-            echo "apk_sha256=$(sha256sum "$APK" | awk '{print $1}')"
+            echo "apk_file=$(basename "$RELEASE_APK")"
+            echo "apk_bytes=$(stat -c '%s' "$RELEASE_APK")"
+            echo "apk_sha256=$(sha256sum "$RELEASE_APK" | awk '{print $1}')"
             echo "source_archive=OSD-source-${GITHUB_SHA}.tar.gz"
             echo "source_archive_sha256=$(sha256sum "$OUT/OSD-source-${GITHUB_SHA}.tar.gz" | awk '{print $1}')"
             echo "ci_tests=passed"
             echo "device_install_test=NOT_RUN_BY_CI"
             echo "full_audio_workflow_test=NOT_RUN_BY_CI"
           } > "$OUT/BUILD-METADATA.txt"
-          test -s "$APK"
+          test -s "$RELEASE_APK"
           test -s "$OUT/SHA256SUMS.txt"
           test -s "$OUT/BUILD-METADATA.txt"
           test -s "$OUT/OSD-source-${GITHUB_SHA}.tar.gz"
-          # Verify checksum manifests from the exact directory layout that will be uploaded.
           (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
           (cd "$OUT" && sha256sum -c SOURCE-SHA256SUMS.txt)
           tar -tzf "$OUT/OSD-source-${GITHUB_SHA}.tar.gz" >/dev/null
-          ls -lh "$APK" "$OUT/BUILD-METADATA.txt" "$OUT/OSD-source-${GITHUB_SHA}.tar.gz"
+          ls -lh "$RELEASE_APK" "$OUT/BUILD-METADATA.txt" "$OUT/OSD-source-${GITHUB_SHA}.tar.gz"
 
       - name: Upload APK, checksum, metadata, and exact source snapshot
         uses: actions/upload-artifact@v4
@@ -112,3 +113,24 @@ jobs:
             app/build/outputs/apk/release/SOURCE-SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 90
+
+      - name: Publish direct APK download on main
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: osd-1.20.0-${{ github.sha }}
+          name: OSD 1.20.0 — ${{ github.sha }}
+          body: |
+            Automated OSD Android release built from commit ${{ github.sha }}.
+
+            APK signature verification, SHA-256 checksum verification, and Python regression tests passed in the build workflow. Physical-device installation and full audio-workflow tests are not performed by CI and must be recorded separately.
+          draft: false
+          prerelease: false
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: |
+            app/build/outputs/apk/release/OSD-1.20.0-${{ github.sha }}.apk
+            app/build/outputs/apk/release/SHA256SUMS.txt
+            app/build/outputs/apk/release/BUILD-METADATA.txt
+            app/build/outputs/apk/release/OSD-source-${{ github.sha }}.tar.gz
+            app/build/outputs/apk/release/SOURCE-SHA256SUMS.txt
