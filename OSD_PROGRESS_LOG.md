@@ -36,3 +36,11 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
 - Static review also found a harmless duplicated `requestCode != PICK_MEDIA` guard in `MainActivity.onActivityResult`; this should be cleaned in a focused follow-up when a testable build can be triggered. No claim of runtime correctness is inferred from source inspection.
 - Latest verified CI remains the release build above; there is no confirmed new build for the current tip after the duplicate-workflow removal. Physical-device installation, launch, playback, export verification, and complete audio workflow remain UNKNOWN.
 - Next: submit the recovery branch as a draft PR to trigger the canonical release workflow on the exact current source, inspect its CI result, then test the resulting artifact on the target Android device. Do not merge without reviewing the diff and CI evidence.
+
+
+## 2026-10-10 — Android launcher cleanup and artifact integrity check
+
+- Removed a duplicated `requestCode != PICK_MEDIA` guard in `MainActivity.onActivityResult`; no behavior change intended. Commit: `4b5f564b3220c8d58595ac29a5cb774e77894539`.
+- Opened draft PR #7 to request canonical release-workflow validation of the recovery branch: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/7. PR head must be checked for its own CI result before this exact source is called build-verified.
+- Downloaded the unexpired artifact from prior successful run 38047914986 and validated the ZIP integrity. Extracted APK SHA-256 exactly matches the embedded checksum: `0dd0211f4b7ddc79b263c1a4e4af786357a7e114f5a9929db7ba14dd9499103e`. The APK belongs to merge commit `75ab6ff26621f6509d0ae034c6534ede13d84db7`, not the current PR head.
+- Current PR-head CI status is not yet observable through the workflow-run lookup at the time of this entry; do not infer it passed. Device install and complete media workflow remain UNKNOWN.
