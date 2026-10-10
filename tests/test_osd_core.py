@@ -61,5 +61,34 @@ class ChannelMapTests(unittest.TestCase):
         self.assertIsNone(core._channel_map("stereo", 1))
 
 
+
+class ArtifactJournalTests(unittest.TestCase):
+    def test_commit_journal_records_persistent_staged_artifact_paths_and_hashes(self):
+        import json
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            out = root / "out"
+            stage = out / ".osd-run-test"
+            stage.mkdir(parents=True)
+            artifact = stage / "processed.wav"
+            artifact.write_bytes(b"preserved audio bytes")
+
+            journal = core._commit_artifacts(out, stage, ["processed.wav"], "run-test")
+
+            self.assertEqual(journal["status"], "COMMITTED")
+            self.assertEqual(journal["staging_dir"], str(stage))
+            self.assertTrue(artifact.is_file())
+            record = journal["artifacts"][0]
+            self.assertEqual(record["path"], str(artifact))
+            self.assertTrue(record["exists"])
+            self.assertEqual(record["bytes"], len(b"preserved audio bytes"))
+            self.assertEqual(record["sha256"], core.sha256(artifact))
+            saved = json.loads((out / "COMMIT-JOURNAL.json").read_text())
+            self.assertEqual(saved["artifacts"][0]["sha256"], core.sha256(artifact))
+
+
 if __name__ == "__main__":
     unittest.main()
