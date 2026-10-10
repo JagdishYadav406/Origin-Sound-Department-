@@ -3,7 +3,7 @@ name: OSD Android Build
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'ops/**', 'fix/**']
   pull_request:
     branches: [main]
     paths:
