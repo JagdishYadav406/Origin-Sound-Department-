@@ -44,3 +44,15 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
 - Opened draft PR #7 to request canonical release-workflow validation of the recovery branch: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/7. PR head must be checked for its own CI result before this exact source is called build-verified.
 - Downloaded the unexpired artifact from prior successful run 38047914986 and validated the ZIP integrity. Extracted APK SHA-256 exactly matches the embedded checksum: `0dd0211f4b7ddc79b263c1a4e4af786357a7e114f5a9929db7ba14dd9499103e`. The APK belongs to merge commit `75ab6ff26621f6509d0ae034c6534ede13d84db7`, not the current PR head.
 - Current PR-head CI status is not yet observable through the workflow-run lookup at the time of this entry; do not infer it passed. Device install and complete media workflow remain UNKNOWN.
+
+
+## 2026-10-10 — Provenance retention fix and processing smoke test
+
+- Found a data-integrity defect in the Python pipeline: successful runs deleted the staging directory after the evidence and commit journal had recorded staged artifacts. This left journal paths referring to removed files.
+- Fixed `app/src/main/python/osd/core.py` in commit `be7941e973291ff34250b7f9f5486a96dd90fde4`: successful runs now retain the source copy and intermediate/final staged artifacts; evidence records the staging directory; the commit journal records artifact paths, existence, byte counts, and SHA-256 values.
+- Added journal regression coverage in `tests/test_osd_core.py`, commit `1d095fe5468b4fbbba2dfb36ba3779858fdec6eb`.
+- Hardened the canonical Android workflow to verify APK signing with Android SDK `apksigner` before publishing an artifact, commit `17457880053f44d0e3cf6e2e97c7149c7905362b`.
+- Local validation: 8 Python tests passed in a working copy assembled from the previous artifact source plus the current retrieved regression/processing patches. A generated 8-second WAV completed the adapted end-to-end processing smoke test: loudness and true-peak QC passed, final WAV and evidence were created, staging remained present, and the commit journal contained valid artifact hashes. This is useful local evidence, but is not a clean checkout build of the current PR head.
+- The prior APK artifact's SHA-256 remains verified as `0dd0211f4b7ddc79b263c1a4e4af786357a7e114f5a9929db7ba14dd9499103e`; its APK signing block marker is present. It is from merge commit `75ab6ff26621f6509d0ae034c6534ede13d84db7`, not the current PR head.
+- PR #7 current head: `17457880053f44d0e3cf6e2e97c7149c7905362b`. Workflow-run lookup still returns no current-head run; exact-head CI build/signing verification remains UNKNOWN and must not be assumed successful.
+- Physical-device install/launch and full media import → processing → QC → export/playback remain UNKNOWN. No merge or release certification until exact-head CI and phone validation pass.
