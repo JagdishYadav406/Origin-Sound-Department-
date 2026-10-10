@@ -129,24 +129,36 @@ public class MainActivity extends Activity {
             saveOutput.setEnabled(false);
             progress.setVisibility(View.VISIBLE);
             executor.execute(() -> {
-                try (InputStream in = new java.io.FileInputStream(source);
-                     java.io.OutputStream out = getContentResolver().openOutputStream(destination, "wt")) {
-                    if (out == null) throw new IllegalStateException("Android could not open the selected save location");
-                    byte[] buffer = new byte[262144];
-                    int n;
-                    while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
-                    out.flush();
+                try {
+                    long expectedBytes = source.length();
+                    String expectedHash = sha256(source);
+                    long copiedBytes = 0;
+                    try (InputStream in = new FileInputStream(source);
+                         java.io.OutputStream out = getContentResolver().openOutputStream(destination, "wt")) {
+                        if (out == null) throw new IllegalStateException("Android could not open the selected save location");
+                        byte[] buffer = new byte[262144];
+                        int n;
+                        while ((n = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, n);
+                            copiedBytes += n;
+                        }
+                        out.flush();
+                    }
+                    if (copiedBytes != expectedBytes) {
+                        throw new IllegalStateException("Export verification failed — copied byte count does not match the final output");
+                    }
+                    verifyExportCopy(destination, expectedBytes, expectedHash);
                     runOnUiThread(() -> {
                         progress.setVisibility(View.GONE);
                         saveOutput.setEnabled(true);
-                        status.setText("OUTPUT EXPORTED — saved copy created.");
-                        detail.setText("Saved output: " + destination);
+                        status.setText("OUTPUT EXPORTED AND VERIFIED.");
+                        detail.setText("Saved copy byte count and SHA-256 match the verified OSD output.\n\nSaved output: " + destination);
                     });
                 } catch (Exception e) {
                     runOnUiThread(() -> {
                         progress.setVisibility(View.GONE);
                         saveOutput.setEnabled(true);
-                        status.setText("EXPORT FAILED.");
+                        status.setText("EXPORT FAILED OR UNVERIFIED.");
                         detail.setText(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
                     });
                 }
@@ -257,6 +269,25 @@ public class MainActivity extends Activity {
         StringBuilder hex = new StringBuilder();
         for (byte b : digest.digest()) hex.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
         return hex.toString();
+    }
+
+    private void verifyExportCopy(Uri destination, long expectedBytes, String expectedHash) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        long actualBytes = 0;
+        try (InputStream in = getContentResolver().openInputStream(destination)) {
+            if (in == null) throw new IllegalStateException("Export verification failed — saved copy cannot be reopened");
+            byte[] buffer = new byte[262144];
+            int n;
+            while ((n = in.read(buffer)) != -1) {
+                digest.update(buffer, 0, n);
+                actualBytes += n;
+            }
+        }
+        StringBuilder hex = new StringBuilder();
+        for (byte b : digest.digest()) hex.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        if (actualBytes != expectedBytes || !hex.toString().equalsIgnoreCase(expectedHash)) {
+            throw new IllegalStateException("Export verification failed — saved copy size or SHA-256 does not match the verified output");
+        }
     }
 
     private void deleteIfExists(File file) throws Exception {
