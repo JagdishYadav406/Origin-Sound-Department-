@@ -1,5 +1,5 @@
 from __future__ import annotations
-import hashlib, json, math, shutil, subprocess, time, uuid
+import hashlib, json, math, re, shutil, subprocess, time, uuid
 from pathlib import Path
 
 class OSDRunError(RuntimeError): pass
@@ -207,16 +207,25 @@ def true_peak(path):
         p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         if p.returncode: raise OSDRunError(p.stderr[-4000:])
         stderr=p.stderr
-    # QC must use oversampled true peak, never substitute sample peak.
+    # FFmpeg versions differ: some print "True peak: -1.0 dBFS" on one
+    # line; others print a "True peak:" heading followed by "Peak: -1.0 dBFS".
+    # Parse only values inside the true-peak block, never the sample-peak block.
+    lines=stderr.splitlines()
     vals=[]
-    for line in stderr.splitlines():
-        lower=line.lower()
-        if 'true peak:' in lower and 'dbfs' in lower:
-            try:
-                value=line[lower.index('true peak:') + len('true peak:'):].split('dBFS')[0].strip()
-                vals.append(float(value))
-            except (ValueError, IndexError):
-                pass
+    number=r'(-?(?:\\d+(?:\\.\\d*)?|\\.\\d+))\\s*dBFS'
+    for i,line in enumerate(lines):
+        if re.search(r'\\btrue peak\\s*:', line, re.IGNORECASE):
+            same_line=re.search(number, line.split(':',1)[1] if ':' in line else '')
+            if same_line:
+                vals.append(float(same_line.group(1)))
+                continue
+            for following in lines[i+1:i+5]:
+                match=re.search(r'\\bPeak\\s*:\\s*'+number, following, re.IGNORECASE)
+                if match:
+                    vals.append(float(match.group(1)))
+                    break
+                if re.search(r'\\b(?:sample peak|true peak)\\s*:', following, re.IGNORECASE):
+                    break
     return max(vals) if vals else None
 
 def qc(path,is_video=False,expected_duration=None,target_lufs=-16):
