@@ -11,8 +11,31 @@ def _android_bridge():
     except Exception:
         return None
 
+def _clear_delivery_markers(out):
+    out=Path(out)
+    for name in ('DELIVERY-READY.txt', 'DELIVERY-BLOCKED.txt'):
+        marker=out/name
+        if marker.is_file() or marker.is_symlink(): marker.unlink()
+
+def _assert_delivery_verified(report):
+    qc=report.get('qc') or {}
+    qc_checks=qc.get('checks') or {}
+    checks=report.get('checks') or {}
+    source_integrity=report.get('source_integrity') or {}
+    if report.get('verification', {}).get('status') != 'VERIFIED':
+        raise OSDRunError('Delivery blocked — evidence does not mark the result VERIFIED')
+    if report.get('delivery_status') != 'DELIVERABLE':
+        raise OSDRunError('Delivery blocked — evidence delivery_status is not DELIVERABLE')
+    if not qc_checks.get('all_pass', False):
+        raise OSDRunError('Delivery blocked — final QC is missing or did not pass')
+    if not checks.get('source_unchanged', False) or not source_integrity.get('unchanged', False):
+        raise OSDRunError('Delivery blocked — source preservation is unverified')
+    if not checks.get('artifacts_integrity_verified', False):
+        raise OSDRunError('Delivery blocked — artifact integrity is unverified')
+
 def _write_failure_evidence(out, *, lifecycle, error, src=None, run_id=None, staging_dir=None):
     out=Path(out); out.mkdir(parents=True, exist_ok=True)
+    _clear_delivery_markers(out)
     report={
         'osd_version':'1.20.0',
         'execution_lifecycle':list(lifecycle)+(['FAILED'] if not lifecycle or lifecycle[-1] != 'FAILED' else []),
@@ -287,7 +310,7 @@ def _classify_error(exc):
     return type(exc).__name__
 
 def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duck_music_db=0.0,enforce_qc=True,resume=False):
-    src=Path(src); out=Path(outdir); out.mkdir(parents=True,exist_ok=True); _recover_stale_runs(out)
+    src=Path(src); out=Path(outdir); out.mkdir(parents=True,exist_ok=True); _clear_delivery_markers(out); _recover_stale_runs(out)
     if not src.exists() or not src.is_file():
         _write_failure_evidence(out,lifecycle=['PLANNED','AUTHORIZED','STARTED'],error=OSDRunError(f'Input not found: {src}'),src=src,run_id=uuid.uuid4().hex,staging_dir=None)
         raise OSDRunError(f'Input not found: {src}')
@@ -353,6 +376,7 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
         report['delivery_status']='DELIVERABLE' if verified and report['qc']['checks']['all_pass'] else 'BLOCKED'
         lifecycle.append('VERIFIED' if verified else 'FAILED'); report['execution_lifecycle']=lifecycle
         if enforce_qc and not report['qc']['checks']['all_pass']: raise OSDRunError('Final QC failed; delivery blocked: '+json.dumps(report['qc']['checks'],sort_keys=True))
+        _assert_delivery_verified(report)
         # Materialize the verified final artifact outside the temporary staging directory.
         # The staging directory is deleted after commit, so the deliverable must be copied first.
         delivered_final=out/('OSD-final.webm' if inspection['video'] else 'OSD-final.wav')
@@ -363,12 +387,17 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
         if mix_source != src: final_names.append(mix_source.name)
         final_names.append(delivered_final.name)
         commit_journal=_commit_artifacts(out,stage,final_names,run_id); report['staging_committed']=commit_journal['status']=='COMMITTED'
-        report_path=out/'evidence.json'; report_path.write_text(json.dumps(report,indent=2)); (out/'EVIDENCE-SHA256.txt').write_text(sha256(report_path)+'  evidence.json\n'); (out/'DELIVERY-READY.txt').write_text('OSD delivery verified and ready. Final artifact: '+delivered_final.name+'; see evidence.json and EVIDENCE-SHA256.txt.\n')
+        report_path=out/'evidence.json'; report_path.write_text(json.dumps(report,indent=2)); (out/'EVIDENCE-SHA256.txt').write_text(sha256(report_path)+'  evidence.json\n')
+        if report['delivery_status']=='DELIVERABLE' and report['verification']['status']=='VERIFIED' and report['qc']['checks']['all_pass']:
+            (out/'DELIVERY-READY.txt').write_text('OSD delivery verified and ready. Final artifact: '+delivered_final.name+'; see evidence.json and EVIDENCE-SHA256.txt.\n')
+        else:
+            (out/'DELIVERY-BLOCKED.txt').write_text('OSD delivery blocked. See evidence.json for the verification status.\n')
         manifest['status']='COMMITTED'; manifest['completed_stages'].append('commit'); _write_resume_manifest(stage,manifest); shutil.rmtree(stage)
         return report
     except Exception as exc:
         if 'report' in locals():
             report['status']='FAILED'; report['delivery_status']='BLOCKED'; report['verification']={'status':'UNVERIFIED','evidence_complete':True}; report['execution_lifecycle']=list(lifecycle)+(['FAILED'] if not lifecycle or lifecycle[-1]!='FAILED' else []); report['error_class']=_classify_error(exc); report['error']=str(exc); report['staging_dir']=str(stage)
+            _clear_delivery_markers(out)
             failure_path=out/'evidence.json'; failure_path.write_text(json.dumps(report,indent=2)); (out/'EVIDENCE-SHA256.txt').write_text(sha256(failure_path)+'  evidence.json\n'); (out/'DELIVERY-BLOCKED.txt').write_text('OSD delivery blocked. See evidence.json for the failure record.\n')
         else: _write_failure_evidence(out,lifecycle=lifecycle,error=exc,src=src,run_id=run_id,staging_dir=stage)
         if 'manifest' in locals():
