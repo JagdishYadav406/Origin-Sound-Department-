@@ -94,6 +94,10 @@ jobs:
           test -s "$OUT/SHA256SUMS.txt"
           test -s "$OUT/BUILD-METADATA.txt"
           test -s "$OUT/OSD-source-${GITHUB_SHA}.tar.gz"
+          # Verify checksum manifests from the exact directory layout that will be uploaded.
+          (cd "$OUT" && sha256sum -c SHA256SUMS.txt)
+          (cd "$OUT" && sha256sum -c SOURCE-SHA256SUMS.txt)
+          tar -tzf "$OUT/OSD-source-${GITHUB_SHA}.tar.gz" >/dev/null
           ls -lh "$APK" "$OUT/BUILD-METADATA.txt" "$OUT/OSD-source-${GITHUB_SHA}.tar.gz"
 
       - name: Upload APK, checksum, metadata, and exact source snapshot
