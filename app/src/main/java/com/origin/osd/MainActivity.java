@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
 import android.widget.Button;
+import android.widget.ProgressBar;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ScrollView;
@@ -27,9 +29,14 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final int PICK_MEDIA = 7;
+    private static final int SAVE_OUTPUT = 8;
     private LinearLayout root;
     private TextView status;
     private Button pick;
+    private Button saveOutput;
+    private File lastFinalArtifact;
+    private TextView detail;
+    private ProgressBar progress;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override public void onCreate(Bundle b) {
@@ -53,8 +60,12 @@ public class MainActivity extends Activity {
         root.addView(access);
 
         status = new TextView(this);
-        status.setText("READY — OSD engine connected");
+        status.setText("READY — choose media to initialize OSD");
         root.addView(status);
+        detail = new TextView(this);
+        detail.setText("Choose a local audio or video file. OSD will process it and verify the output.");
+        detail.setTextSize(14);
+        root.addView(detail);
 
         TextView help = new TextView(this);
         help.setText("Select local audio/video → OSD processes it → QC verifies loudness, true peak and delivery evidence.");
@@ -66,11 +77,16 @@ public class MainActivity extends Activity {
         pick.setText("Choose audio or video");
         pick.setOnClickListener(v -> chooseMedia());
         root.addView(pick);
+        progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setIndeterminate(true);
+        progress.setVisibility(View.GONE);
+        root.addView(progress, new LinearLayout.LayoutParams(-1, 12));
 
-        Button output = new Button(this);
-        output.setText("Open OSD output folder");
-        output.setOnClickListener(v -> openOutputFolder());
-        root.addView(output);
+        saveOutput = new Button(this);
+        saveOutput.setText("Save final output to device");
+        saveOutput.setEnabled(false);
+        saveOutput.setOnClickListener(v -> chooseOutputDestination());
+        root.addView(saveOutput);
         setContentView(root);
     }
 
@@ -84,6 +100,45 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == SAVE_OUTPUT) {
+            if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+                status.setText("Export cancelled; the output remains in OSD storage.");
+                return;
+            }
+            Uri destination = data.getData();
+            File source = lastFinalArtifact;
+            if (source == null || !source.isFile() || source.length() == 0) {
+                status.setText("Export failed — no final output is available.");
+                return;
+            }
+            saveOutput.setEnabled(false);
+            progress.setVisibility(View.VISIBLE);
+            executor.execute(() -> {
+                try (InputStream in = new java.io.FileInputStream(source);
+                     java.io.OutputStream out = getContentResolver().openOutputStream(destination, "wt")) {
+                    if (out == null) throw new IllegalStateException("Android could not open the selected save location");
+                    byte[] buffer = new byte[262144];
+                    int n;
+                    while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+                    out.flush();
+                    runOnUiThread(() -> {
+                        progress.setVisibility(View.GONE);
+                        saveOutput.setEnabled(true);
+                        status.setText("OUTPUT EXPORTED — saved copy created.");
+                        detail.setText("Saved output: " + destination);
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        progress.setVisibility(View.GONE);
+                        saveOutput.setEnabled(true);
+                        status.setText("EXPORT FAILED.");
+                        detail.setText(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                    });
+                }
+            });
+            return;
+        }
+        if (requestCode != PICK_MEDIA) return;
         if (requestCode != PICK_MEDIA) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
             status.setText("No media selected.");
@@ -91,31 +146,47 @@ public class MainActivity extends Activity {
         }
         Uri uri = data.getData();
         status.setText("MEDIA SELECTED — preparing OSD…");
+        detail.setText("Keep OSD open while processing runs.");
         pick.setEnabled(false);
+        progress.setVisibility(View.VISIBLE);
         executor.execute(() -> {
             try {
                 File input = copyUriToInput(uri);
                 File output = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
                 if (!output.exists() && !output.mkdirs()) throw new IllegalStateException("Unable to create OSD output directory");
+                deleteIfExists(new File(output, "evidence.json"));
+                deleteIfExists(new File(output, "OSD-final.wav"));
+                deleteIfExists(new File(output, "OSD-final.webm"));
+                runOnUiThread(() -> status.setText("PROCESSING — OSD engine is running…"));
                 runOsd(input, output);
                 File report = new File(output, "evidence.json");
                 File wav = new File(output, "OSD-final.wav");
                 File webm = new File(output, "OSD-final.webm");
-                File finalArtifact = wav.isFile() ? wav : webm;
+                File finalArtifact = wav.isFile() && wav.length() > 0 ? wav : (webm.isFile() && webm.length() > 0 ? webm : null);
+                if (!report.isFile() || report.length() == 0 || finalArtifact == null) throw new IllegalStateException("OSD returned without a final artifact and evidence report");
+                String finalPath = finalArtifact.getAbsolutePath();
+                String evidencePath = report.getAbsolutePath();
                 runOnUiThread(() -> {
                     pick.setEnabled(true);
-                    if (report.isFile() && finalArtifact.isFile())
-                        status.setText("PROCESSING COMPLETE\nFinal: " + finalArtifact.getAbsolutePath() + "\nEvidence: " + report.getAbsolutePath());
-                    else
-                        status.setText("PROCESSING FAILED — verified delivery artifact was not produced.");
+                    progress.setVisibility(View.GONE);
+                    lastFinalArtifact = finalArtifact;
+                    saveOutput.setEnabled(true);
+                    status.setText("PROCESSING COMPLETE — output and evidence found.");
+                    detail.setText("Final file:\n" + finalPath + "\n\nEvidence report:\n" + evidencePath + "\n\nUse Save final output to device to export a copy.");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     pick.setEnabled(true);
-                    status.setText("PROCESSING FAILED — " + e.getMessage());
+                    progress.setVisibility(View.GONE);
+                    status.setText("PROCESSING FAILED — output was not verified.");
+                    detail.setText(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
                 });
             }
         });
+    }
+
+    private void deleteIfExists(File file) throws Exception {
+        if (file.exists() && !file.delete()) throw new IllegalStateException("Unable to clear previous output marker: " + file.getName());
     }
 
     private File copyUriToInput(Uri uri) throws Exception {
@@ -153,18 +224,19 @@ public class MainActivity extends Activity {
         );
     }
 
-    private void openOutputFolder() {
-        File dir = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
-        Intent i = new Intent(Intent.ACTION_VIEW);
-        i.setDataAndType(Uri.fromFile(dir), "*/*");
-        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        try { startActivity(i); } catch (ActivityNotFoundException e) {
-            status.setText("OSD output folder: " + dir.getAbsolutePath());
-        } catch (Exception e) {
-            status.setText("OSD output folder: " + dir.getAbsolutePath());
+    private void chooseOutputDestination() {
+        File source = lastFinalArtifact;
+        if (source == null || !source.isFile() || source.length() == 0) {
+            status.setText("No final output is available to export.");
+            return;
         }
+        boolean video = source.getName().toLowerCase().endsWith(".webm");
+        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType(video ? "video/webm" : "audio/wav");
+        i.putExtra(Intent.EXTRA_TITLE, source.getName());
+        startActivityForResult(i, SAVE_OUTPUT);
     }
-
     @Override protected void onDestroy() {
         executor.shutdownNow();
         super.onDestroy();

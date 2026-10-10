@@ -198,7 +198,7 @@ def master_audio(src,out,target_lufs=-16):
     _run(['ffmpeg','-y','-hide_banner','-i',str(src),'-af',f'loudnorm=I={float(target_lufs)}:TP=-1.0:LRA=11:print_format=summary',str(out)])
 
 def true_peak(path):
-    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose','-f','null','-']
+    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose:peak=true','-f','null','-']
     bridge=_android_bridge()
     if bridge is not None:
         try: stderr=bridge.execute_stderr([str(x) for x in cmd])
@@ -207,11 +207,34 @@ def true_peak(path):
         p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         if p.returncode: raise OSDRunError(p.stderr[-4000:])
         stderr=p.stderr
+    # FFmpeg versions vary: true peak can be inline or a heading followed by
+    # "Peak: ... dBFS". Parse only the true-peak section, never sample peak.
+    lines=stderr.splitlines()
     vals=[]
-    for line in stderr.splitlines():
-        if 'Peak:' in line and 'dBFS' in line:
-            try: vals.append(float(line.split('Peak:')[1].split('dBFS')[0].strip()))
-            except Exception: pass
+    for i,line in enumerate(lines):
+        lower=line.lower()
+        if 'true peak:' not in lower:
+            continue
+        tail=line.split(':',1)[1].strip()
+        if 'dbfs' in tail.lower():
+            token=tail.lower().split('dbfs',1)[0].strip().split()[-1]
+            try:
+                vals.append(float(token))
+                continue
+            except (ValueError, IndexError):
+                pass
+        for following in lines[i+1:i+5]:
+            text=following.strip()
+            low=text.lower()
+            if low.startswith('peak:') and 'dbfs' in low:
+                token=text.split(':',1)[1].lower().split('dbfs',1)[0].strip()
+                try:
+                    vals.append(float(token))
+                except ValueError:
+                    pass
+                break
+            if low.startswith('sample peak:') or low.startswith('true peak:'):
+                break
     return max(vals) if vals else None
 
 def qc(path,is_video=False,expected_duration=None,target_lufs=-16):
