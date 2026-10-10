@@ -283,9 +283,21 @@ def _resume_artifact(manifest,key):
     return Path(rec['path']) if rec and _artifact_valid(rec) else None
 
 def _commit_artifacts(out,stage,names,run_id):
-    # Android build uses the same engine but does not need the local commit journal.
-    journal={'status':'COMMITTED','run_id':run_id,'artifacts':names}
-    (Path(out)/'COMMIT-JOURNAL.json').write_text(json.dumps(journal,indent=2))
+    # Preserve exact locations and integrity data for staged and delivered artifacts.
+    out=Path(out); stage=Path(stage); records=[]
+    for name in names:
+        staged=stage/name
+        delivered=out/name
+        path=staged if staged.is_file() else delivered
+        records.append({
+            'name':name,
+            'path':str(path),
+            'exists':path.is_file(),
+            'bytes':path.stat().st_size if path.is_file() else None,
+            'sha256':sha256(path) if path.is_file() else None,
+        })
+    journal={'status':'COMMITTED','run_id':run_id,'staging_dir':str(stage),'artifacts':records}
+    (out/'COMMIT-JOURNAL.json').write_text(json.dumps(journal,indent=2))
     return journal
 
 def _recover_stale_runs(out):
@@ -349,6 +361,7 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
                 'stem_source_evidence':source_stem_evidence,'master_target_lufs':target_lufs,'source_integrity':{'sha256_before':source_hash_before,'sha256_after':source_hash_after,'unchanged':source_unchanged},
                 'timing':inspection['timing'],'qc':qc(final,inspection['video'],inspection['duration'] if inspection['video'] else None,target_lufs=target_lufs),
                 'runtime_seconds':round(time.time()-t,3),'artifacts':{},'verification':{'status':'OBSERVED'},
+                'staging_dir':str(stage),'staging_retained':True,
                 'resume':{'enabled':bool(resume),'resumed':resumed,'completed_stages':list(manifest.get('completed_stages',[]))}}
         for pth in [original,processed,mastered,final]: report['artifacts'][pth.name]={'bytes':pth.stat().st_size,'sha256':sha256(pth)}
         artifact_checks={}
@@ -372,7 +385,8 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
         final_names.append(delivered_final.name)
         commit_journal=_commit_artifacts(out,stage,final_names,run_id); report['staging_committed']=commit_journal['status']=='COMMITTED'
         report_path=out/'evidence.json'; report_path.write_text(json.dumps(report,indent=2)); (out/'EVIDENCE-SHA256.txt').write_text(sha256(report_path)+'  evidence.json\n'); (out/'DELIVERY-READY.txt').write_text('OSD delivery verified and ready. Final artifact: '+delivered_final.name+'; see evidence.json and EVIDENCE-SHA256.txt.\n')
-        manifest['status']='COMMITTED'; manifest['completed_stages'].append('commit'); _write_resume_manifest(stage,manifest); shutil.rmtree(stage)
+        manifest['status']='COMMITTED'; manifest['completed_stages'].append('commit'); _write_resume_manifest(stage,manifest)
+        # Keep source/intermediate/final staged artifacts for provenance and audit; never delete evidence on success.
         return report
     except Exception as exc:
         if 'report' in locals():
