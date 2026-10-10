@@ -23,6 +23,12 @@ import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
 import java.io.File;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.security.MessageDigest;
+import org.json.JSONObject;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
@@ -176,6 +182,7 @@ public class MainActivity extends Activity {
                 File webm = new File(output, "OSD-final.webm");
                 File finalArtifact = wav.isFile() && wav.length() > 0 ? wav : (webm.isFile() && webm.length() > 0 ? webm : null);
                 if (!report.isFile() || report.length() == 0 || finalArtifact == null) throw new IllegalStateException("OSD returned without a final artifact and evidence report");
+                verifyDeliveryEvidence(report, finalArtifact, output);
                 String finalPath = finalArtifact.getAbsolutePath();
                 String evidencePath = report.getAbsolutePath();
                 runOnUiThread(() -> {
@@ -197,6 +204,59 @@ public class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    private void verifyDeliveryEvidence(File reportFile, File artifact, File outputDir) throws Exception {
+        JSONObject report = new JSONObject(new String(readFile(reportFile), "UTF-8"));
+        JSONObject verification = report.optJSONObject("verification");
+        JSONObject qc = report.optJSONObject("qc");
+        JSONObject qcChecks = qc == null ? null : qc.optJSONObject("checks");
+        JSONObject checks = report.optJSONObject("checks");
+        JSONObject sourceIntegrity = report.optJSONObject("source_integrity");
+        JSONObject delivery = report.optJSONObject("delivery_artifact");
+        if (verification == null || !"VERIFIED".equals(verification.optString("status")))
+            throw new IllegalStateException("Delivery blocked — evidence does not mark the result VERIFIED");
+        if (!"DELIVERABLE".equals(report.optString("delivery_status")))
+            throw new IllegalStateException("Delivery blocked — evidence delivery_status is not DELIVERABLE");
+        if (qcChecks == null || !qcChecks.optBoolean("all_pass", false))
+            throw new IllegalStateException("Delivery blocked — final QC is missing or did not pass");
+        if (checks == null || !checks.optBoolean("source_unchanged", false) || !checks.optBoolean("artifacts_integrity_verified", false)
+                || sourceIntegrity == null || !sourceIntegrity.optBoolean("unchanged", false))
+            throw new IllegalStateException("Delivery blocked — source preservation or artifact integrity is unverified");
+        if (delivery == null || delivery.optLong("bytes", -1) != artifact.length()
+                || !sha256(artifact).equalsIgnoreCase(delivery.optString("sha256", "")))
+            throw new IllegalStateException("Delivery blocked — final artifact does not match the evidence hash and size");
+        File sidecar = new File(outputDir, "EVIDENCE-SHA256.txt");
+        if (!sidecar.isFile()) throw new IllegalStateException("Delivery blocked — evidence checksum sidecar is missing");
+        String recordedHash;
+        try (BufferedReader reader = new BufferedReader(new FileReader(sidecar))) {
+            String line = reader.readLine();
+            if (line == null || line.trim().isEmpty()) throw new IllegalStateException("Delivery blocked — evidence checksum sidecar is empty");
+            recordedHash = line.trim().split("\\s+")[0];
+        }
+        if (!sha256(reportFile).equalsIgnoreCase(recordedHash))
+            throw new IllegalStateException("Delivery blocked — evidence report checksum does not match");
+    }
+
+    private byte[] readFile(File file) throws Exception {
+        try (InputStream in = new FileInputStream(file); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[65536];
+            int n;
+            while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+            return out.toByteArray();
+        }
+    }
+
+    private String sha256(File file) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream in = new FileInputStream(file)) {
+            byte[] buffer = new byte[65536];
+            int n;
+            while ((n = in.read(buffer)) != -1) digest.update(buffer, 0, n);
+        }
+        StringBuilder hex = new StringBuilder();
+        for (byte b : digest.digest()) hex.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        return hex.toString();
     }
 
     private void deleteIfExists(File file) throws Exception {
