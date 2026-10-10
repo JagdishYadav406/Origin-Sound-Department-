@@ -8,44 +8,97 @@ on:
     branches: [main]
     paths:
       - 'app/**'
+      - 'tests/**'
       - '*.gradle.kts'
       - 'settings.gradle.kts'
+      - '.github/workflows/**'
+      - 'OSD_*.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osd-android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact source commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+
       - name: Run OSD Python regression tests
         run: python -m unittest discover -s tests -v
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+
       - name: Build release APK
         run: gradle :app:assembleRelease --no-daemon --stacktrace
-      - name: Verify APK
+
+      - name: Verify APK and record provenance
         shell: bash
         run: |
           set -euo pipefail
-          APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          OUT="app/build/outputs/apk/release"
+          mkdir -p "$OUT"
+          APK="$(find "$OUT" -maxdepth 1 -type f -name '*.apk' -size +0c | head -n 1)"
           test -n "$APK"
-          sha256sum "$APK" | tee app/build/outputs/apk/release/SHA256SUMS.txt
-          ls -lh "$APK"
-      - uses: actions/upload-artifact@v4
+          sha256sum "$APK" | tee "$OUT/SHA256SUMS.txt"
+          git archive --format=tar.gz --output="$OUT/OSD-source-${GITHUB_SHA}.tar.gz" "$GITHUB_SHA"
+          sha256sum "$OUT/OSD-source-${GITHUB_SHA}.tar.gz" | tee "$OUT/SOURCE-SHA256SUMS.txt"
+          {
+            echo "project=Origin Sound Department"
+            echo "version=1.20.0"
+            echo "commit=$GITHUB_SHA"
+            echo "ref=$GITHUB_REF"
+            echo "workflow=$GITHUB_WORKFLOW"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "run_url=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "built_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "java=$(java -version 2>&1 | head -n 1)"
+            echo "python=$(python --version 2>&1)"
+            echo "gradle=8.13"
+            echo "apk_relative_path=$APK"
+            echo "apk_bytes=$(stat -c '%s' "$APK")"
+            echo "apk_sha256=$(sha256sum "$APK" | awk '{print $1}')"
+            echo "source_archive=OSD-source-${GITHUB_SHA}.tar.gz"
+            echo "source_archive_sha256=$(sha256sum "$OUT/OSD-source-${GITHUB_SHA}.tar.gz" | awk '{print $1}')"
+            echo "ci_tests=passed"
+            echo "device_install_test=NOT_RUN_BY_CI"
+            echo "full_audio_workflow_test=NOT_RUN_BY_CI"
+          } > "$OUT/BUILD-METADATA.txt"
+          test -s "$APK"
+          test -s "$OUT/SHA256SUMS.txt"
+          test -s "$OUT/BUILD-METADATA.txt"
+          test -s "$OUT/OSD-source-${GITHUB_SHA}.tar.gz"
+          ls -lh "$APK" "$OUT/BUILD-METADATA.txt" "$OUT/OSD-source-${GITHUB_SHA}.tar.gz"
+
+      - name: Upload APK, checksum, metadata, and exact source snapshot
+        uses: actions/upload-artifact@v4
         with:
-          name: OSD-1.20.0-release
+          name: OSD-1.20.0-${{ github.sha }}
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/apk/release/SHA256SUMS.txt
-
-# Build workflow is intentionally kept reproducible for release verification.
+            app/build/outputs/apk/release/BUILD-METADATA.txt
+            app/build/outputs/apk/release/OSD-source-${{ github.sha }}.tar.gz
+            app/build/outputs/apk/release/SOURCE-SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 90
