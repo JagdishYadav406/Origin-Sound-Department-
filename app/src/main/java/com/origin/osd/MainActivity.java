@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
 import android.widget.Button;
+import android.widget.ProgressBar;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ScrollView;
@@ -30,6 +32,8 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private TextView status;
     private Button pick;
+    private TextView detail;
+    private ProgressBar progress;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override public void onCreate(Bundle b) {
@@ -53,8 +57,12 @@ public class MainActivity extends Activity {
         root.addView(access);
 
         status = new TextView(this);
-        status.setText("READY — OSD engine connected");
+        status.setText("READY — choose media to initialize OSD");
         root.addView(status);
+        detail = new TextView(this);
+        detail.setText("Choose a local audio or video file. OSD will process it and verify the output.");
+        detail.setTextSize(14);
+        root.addView(detail);
 
         TextView help = new TextView(this);
         help.setText("Select local audio/video → OSD processes it → QC verifies loudness, true peak and delivery evidence.");
@@ -66,9 +74,13 @@ public class MainActivity extends Activity {
         pick.setText("Choose audio or video");
         pick.setOnClickListener(v -> chooseMedia());
         root.addView(pick);
+        progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setIndeterminate(true);
+        progress.setVisibility(View.GONE);
+        root.addView(progress, new LinearLayout.LayoutParams(-1, 12));
 
         Button output = new Button(this);
-        output.setText("Open OSD output folder");
+        output.setText("Show OSD output location");
         output.setOnClickListener(v -> openOutputFolder());
         root.addView(output);
         setContentView(root);
@@ -91,31 +103,45 @@ public class MainActivity extends Activity {
         }
         Uri uri = data.getData();
         status.setText("MEDIA SELECTED — preparing OSD…");
+        detail.setText("Keep OSD open while processing runs.");
         pick.setEnabled(false);
+        progress.setVisibility(View.VISIBLE);
         executor.execute(() -> {
             try {
                 File input = copyUriToInput(uri);
                 File output = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
                 if (!output.exists() && !output.mkdirs()) throw new IllegalStateException("Unable to create OSD output directory");
+                deleteIfExists(new File(output, "evidence.json"));
+                deleteIfExists(new File(output, "OSD-final.wav"));
+                deleteIfExists(new File(output, "OSD-final.webm"));
+                runOnUiThread(() -> status.setText("PROCESSING — OSD engine is running…"));
                 runOsd(input, output);
                 File report = new File(output, "evidence.json");
                 File wav = new File(output, "OSD-final.wav");
                 File webm = new File(output, "OSD-final.webm");
-                File finalArtifact = wav.isFile() ? wav : webm;
+                File finalArtifact = wav.isFile() && wav.length() > 0 ? wav : (webm.isFile() && webm.length() > 0 ? webm : null);
+                if (!report.isFile() || report.length() == 0 || finalArtifact == null) throw new IllegalStateException("OSD returned without a final artifact and evidence report");
+                String finalPath = finalArtifact.getAbsolutePath();
+                String evidencePath = report.getAbsolutePath();
                 runOnUiThread(() -> {
                     pick.setEnabled(true);
-                    if (report.isFile() && finalArtifact.isFile())
-                        status.setText("PROCESSING COMPLETE\nFinal: " + finalArtifact.getAbsolutePath() + "\nEvidence: " + report.getAbsolutePath());
-                    else
-                        status.setText("PROCESSING FAILED — verified delivery artifact was not produced.");
+                    progress.setVisibility(View.GONE);
+                    status.setText("PROCESSING COMPLETE — output and evidence found.");
+                    detail.setText("Final file:\n" + finalPath + "\n\nEvidence report:\n" + evidencePath);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     pick.setEnabled(true);
-                    status.setText("PROCESSING FAILED — " + e.getMessage());
+                    progress.setVisibility(View.GONE);
+                    status.setText("PROCESSING FAILED — output was not verified.");
+                    detail.setText(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
                 });
             }
         });
+    }
+
+    private void deleteIfExists(File file) throws Exception {
+        if (file.exists() && !file.delete()) throw new IllegalStateException("Unable to clear previous output marker: " + file.getName());
     }
 
     private File copyUriToInput(Uri uri) throws Exception {
@@ -159,7 +185,7 @@ public class MainActivity extends Activity {
         i.setDataAndType(Uri.fromFile(dir), "*/*");
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try { startActivity(i); } catch (ActivityNotFoundException e) {
-            status.setText("OSD output folder: " + dir.getAbsolutePath());
+            status.setText("OSD output location (app-private): " + dir.getAbsolutePath());
         } catch (Exception e) {
             status.setText("OSD output folder: " + dir.getAbsolutePath());
         }

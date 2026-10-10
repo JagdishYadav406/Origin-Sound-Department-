@@ -198,7 +198,7 @@ def master_audio(src,out,target_lufs=-16):
     _run(['ffmpeg','-y','-hide_banner','-i',str(src),'-af',f'loudnorm=I={float(target_lufs)}:TP=-1.0:LRA=11:print_format=summary',str(out)])
 
 def true_peak(path):
-    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose','-f','null','-']
+    cmd=['ffmpeg','-hide_banner','-nostats','-i',str(path),'-af','ebur128=framelog=verbose:peak=true','-f','null','-']
     bridge=_android_bridge()
     if bridge is not None:
         try: stderr=bridge.execute_stderr([str(x) for x in cmd])
@@ -207,11 +207,16 @@ def true_peak(path):
         p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         if p.returncode: raise OSDRunError(p.stderr[-4000:])
         stderr=p.stderr
+    # QC must use oversampled true peak, never substitute sample peak.
     vals=[]
     for line in stderr.splitlines():
-        if 'Peak:' in line and 'dBFS' in line:
-            try: vals.append(float(line.split('Peak:')[1].split('dBFS')[0].strip()))
-            except Exception: pass
+        lower=line.lower()
+        if 'true peak:' in lower and 'dbfs' in lower:
+            try:
+                value=line[lower.index('true peak:') + len('true peak:'):].split('dBFS')[0].strip()
+                vals.append(float(value))
+            except (ValueError, IndexError):
+                pass
     return max(vals) if vals else None
 
 def qc(path,is_video=False,expected_duration=None,target_lufs=-16):
