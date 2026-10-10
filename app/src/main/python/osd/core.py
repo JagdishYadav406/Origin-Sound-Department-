@@ -1,5 +1,5 @@
 from __future__ import annotations
-import hashlib, json, math, re, shutil, subprocess, time, uuid
+import hashlib, json, math, shutil, subprocess, time, uuid
 from pathlib import Path
 
 class OSDRunError(RuntimeError): pass
@@ -207,25 +207,34 @@ def true_peak(path):
         p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         if p.returncode: raise OSDRunError(p.stderr[-4000:])
         stderr=p.stderr
-    # FFmpeg can print an inline true-peak value or a heading followed by
-    # "Peak: ... dBFS". Never mistake the sample-peak block for true peak.
+    # FFmpeg versions vary: true peak can be inline or a heading followed by
+    # "Peak: ... dBFS". Parse only the true-peak section, never sample peak.
     lines=stderr.splitlines()
     vals=[]
-    number=r'(-?\d+(?:\.\d+)?)\s*dBFS'
     for i,line in enumerate(lines):
-        if re.search(r'\btrue peak\s*:', line, re.IGNORECASE):
-            tail=line.split(':',1)[1] if ':' in line else ''
-            match=re.search(number,tail,re.IGNORECASE)
-            if match:
-                vals.append(float(match.group(1)))
+        lower=line.lower()
+        if 'true peak:' not in lower:
+            continue
+        tail=line.split(':',1)[1].strip()
+        if 'dbfs' in tail.lower():
+            token=tail.lower().split('dbfs',1)[0].strip().split()[-1]
+            try:
+                vals.append(float(token))
                 continue
-            for following in lines[i+1:i+5]:
-                match=re.search(r'\bPeak\s*:\s*'+number,following,re.IGNORECASE)
-                if match:
-                    vals.append(float(match.group(1)))
-                    break
-                if re.search(r'\b(?:sample peak|true peak)\s*:',following,re.IGNORECASE):
-                    break
+            except (ValueError, IndexError):
+                pass
+        for following in lines[i+1:i+5]:
+            text=following.strip()
+            low=text.lower()
+            if low.startswith('peak:') and 'dbfs' in low:
+                token=text.split(':',1)[1].lower().split('dbfs',1)[0].strip()
+                try:
+                    vals.append(float(token))
+                except ValueError:
+                    pass
+                break
+            if low.startswith('sample peak:') or low.startswith('true peak:'):
+                break
     return max(vals) if vals else None
 
 def qc(path,is_video=False,expected_duration=None,target_lufs=-16):
