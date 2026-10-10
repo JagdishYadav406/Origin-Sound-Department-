@@ -82,7 +82,7 @@ class DeliveryGateTests(unittest.TestCase):
         report = self.valid_report()
         report["verification"]["status"] = "UNVERIFIED"
         report["delivery_status"] = "BLOCKED"
-        with self.assertRaisesRegex(core.OSDRunError, "not DELIVERABLE|not VERIFIED"):
+        with self.assertRaisesRegex(core.OSDRunError, "does not mark the result VERIFIED|not DELIVERABLE"):
             core._assert_delivery_verified(report)
 
     def test_missing_qc_measurements_cannot_be_deliverable(self):
