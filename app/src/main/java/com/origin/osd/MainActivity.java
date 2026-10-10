@@ -57,7 +57,7 @@ public class MainActivity extends Activity {
         root.addView(access);
 
         status = new TextView(this);
-        status.setText("READY — OSD engine connected");
+        status.setText("READY — choose media to initialize OSD");
         root.addView(status);
         detail = new TextView(this);
         detail.setText("Choose a local audio or video file. OSD will process it and verify the output.");
@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
         root.addView(progress, new LinearLayout.LayoutParams(-1, 12));
 
         Button output = new Button(this);
-        output.setText("Open OSD output folder");
+        output.setText("Show OSD output location");
         output.setOnClickListener(v -> openOutputFolder());
         root.addView(output);
         setContentView(root);
@@ -185,7 +185,7 @@ public class MainActivity extends Activity {
         i.setDataAndType(Uri.fromFile(dir), "*/*");
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try { startActivity(i); } catch (ActivityNotFoundException e) {
-            status.setText("OSD output folder: " + dir.getAbsolutePath());
+            status.setText("OSD output location (app-private): " + dir.getAbsolutePath());
         } catch (Exception e) {
             status.setText("OSD output folder: " + dir.getAbsolutePath());
         }
