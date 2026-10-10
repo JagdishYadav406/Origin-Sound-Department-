@@ -139,7 +139,6 @@ public class MainActivity extends Activity {
             return;
         }
         if (requestCode != PICK_MEDIA) return;
-        if (requestCode != PICK_MEDIA) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
             status.setText("No media selected.");
             return;
