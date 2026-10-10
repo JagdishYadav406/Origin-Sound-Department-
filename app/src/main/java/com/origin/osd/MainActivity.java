@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.ActivityNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
@@ -22,6 +23,12 @@ import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
 import java.io.File;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.security.MessageDigest;
+import org.json.JSONObject;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +41,8 @@ public class MainActivity extends Activity {
     private TextView status;
     private Button pick;
     private Button saveOutput;
+    private Button playbackButton;
+    private MediaPlayer player;
     private File lastFinalArtifact;
     private TextView detail;
     private ProgressBar progress;
@@ -87,6 +96,12 @@ public class MainActivity extends Activity {
         saveOutput.setEnabled(false);
         saveOutput.setOnClickListener(v -> chooseOutputDestination());
         root.addView(saveOutput);
+
+        playbackButton = new Button(this);
+        playbackButton.setText("Play final output");
+        playbackButton.setEnabled(false);
+        playbackButton.setOnClickListener(v -> playOrStopOutput());
+        root.addView(playbackButton);
         setContentView(root);
     }
 
@@ -144,6 +159,10 @@ public class MainActivity extends Activity {
             return;
         }
         Uri uri = data.getData();
+        stopPlayback();
+        lastFinalArtifact = null;
+        saveOutput.setEnabled(false);
+        playbackButton.setEnabled(false);
         status.setText("MEDIA SELECTED — preparing OSD…");
         detail.setText("Keep OSD open while processing runs.");
         pick.setEnabled(false);
@@ -163,6 +182,7 @@ public class MainActivity extends Activity {
                 File webm = new File(output, "OSD-final.webm");
                 File finalArtifact = wav.isFile() && wav.length() > 0 ? wav : (webm.isFile() && webm.length() > 0 ? webm : null);
                 if (!report.isFile() || report.length() == 0 || finalArtifact == null) throw new IllegalStateException("OSD returned without a final artifact and evidence report");
+                verifyDeliveryEvidence(report, finalArtifact, output);
                 String finalPath = finalArtifact.getAbsolutePath();
                 String evidencePath = report.getAbsolutePath();
                 runOnUiThread(() -> {
@@ -170,8 +190,10 @@ public class MainActivity extends Activity {
                     progress.setVisibility(View.GONE);
                     lastFinalArtifact = finalArtifact;
                     saveOutput.setEnabled(true);
+                    playbackButton.setEnabled(true);
+                    playbackButton.setText("Play final output");
                     status.setText("PROCESSING COMPLETE — output and evidence found.");
-                    detail.setText("Final file:\n" + finalPath + "\n\nEvidence report:\n" + evidencePath + "\n\nUse Save final output to device to export a copy.");
+                    detail.setText("Final file:\n" + finalPath + "\n\nEvidence report:\n" + evidencePath + "\n\nPlay the result here or save a copy to your device.");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -182,6 +204,59 @@ public class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    private void verifyDeliveryEvidence(File reportFile, File artifact, File outputDir) throws Exception {
+        JSONObject report = new JSONObject(new String(readFile(reportFile), "UTF-8"));
+        JSONObject verification = report.optJSONObject("verification");
+        JSONObject qc = report.optJSONObject("qc");
+        JSONObject qcChecks = qc == null ? null : qc.optJSONObject("checks");
+        JSONObject checks = report.optJSONObject("checks");
+        JSONObject sourceIntegrity = report.optJSONObject("source_integrity");
+        JSONObject delivery = report.optJSONObject("delivery_artifact");
+        if (verification == null || !"VERIFIED".equals(verification.optString("status")))
+            throw new IllegalStateException("Delivery blocked — evidence does not mark the result VERIFIED");
+        if (!"DELIVERABLE".equals(report.optString("delivery_status")))
+            throw new IllegalStateException("Delivery blocked — evidence delivery_status is not DELIVERABLE");
+        if (qcChecks == null || !qcChecks.optBoolean("all_pass", false))
+            throw new IllegalStateException("Delivery blocked — final QC is missing or did not pass");
+        if (checks == null || !checks.optBoolean("source_unchanged", false) || !checks.optBoolean("artifacts_integrity_verified", false)
+                || sourceIntegrity == null || !sourceIntegrity.optBoolean("unchanged", false))
+            throw new IllegalStateException("Delivery blocked — source preservation or artifact integrity is unverified");
+        if (delivery == null || delivery.optLong("bytes", -1) != artifact.length()
+                || !sha256(artifact).equalsIgnoreCase(delivery.optString("sha256", "")))
+            throw new IllegalStateException("Delivery blocked — final artifact does not match the evidence hash and size");
+        File sidecar = new File(outputDir, "EVIDENCE-SHA256.txt");
+        if (!sidecar.isFile()) throw new IllegalStateException("Delivery blocked — evidence checksum sidecar is missing");
+        String recordedHash;
+        try (BufferedReader reader = new BufferedReader(new FileReader(sidecar))) {
+            String line = reader.readLine();
+            if (line == null || line.trim().isEmpty()) throw new IllegalStateException("Delivery blocked — evidence checksum sidecar is empty");
+            recordedHash = line.trim().split("\\s+")[0];
+        }
+        if (!sha256(reportFile).equalsIgnoreCase(recordedHash))
+            throw new IllegalStateException("Delivery blocked — evidence report checksum does not match");
+    }
+
+    private byte[] readFile(File file) throws Exception {
+        try (InputStream in = new FileInputStream(file); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[65536];
+            int n;
+            while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+            return out.toByteArray();
+        }
+    }
+
+    private String sha256(File file) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream in = new FileInputStream(file)) {
+            byte[] buffer = new byte[65536];
+            int n;
+            while ((n = in.read(buffer)) != -1) digest.update(buffer, 0, n);
+        }
+        StringBuilder hex = new StringBuilder();
+        for (byte b : digest.digest()) hex.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
+        return hex.toString();
     }
 
     private void deleteIfExists(File file) throws Exception {
@@ -223,6 +298,63 @@ public class MainActivity extends Activity {
         );
     }
 
+    private void playOrStopOutput() {
+        File source = lastFinalArtifact;
+        if (source == null || !source.isFile() || source.length() == 0) {
+            status.setText("Playback unavailable — no final output exists.");
+            playbackButton.setEnabled(false);
+            return;
+        }
+        if (player != null) {
+            stopPlayback();
+            status.setText("PLAYBACK STOPPED.");
+            return;
+        }
+        MediaPlayer next = new MediaPlayer();
+        player = next;
+        playbackButton.setEnabled(false);
+        playbackButton.setText("Preparing playback…");
+        status.setText("PREPARING FINAL OUTPUT PLAYBACK…");
+        try {
+            next.setDataSource(source.getAbsolutePath());
+            next.setOnPreparedListener(mp -> {
+                if (player != mp) { mp.release(); return; }
+                mp.start();
+                playbackButton.setText("Stop playback");
+                playbackButton.setEnabled(true);
+                status.setText("PLAYING FINAL OUTPUT.");
+            });
+            next.setOnCompletionListener(mp -> {
+                stopPlayback();
+                status.setText("PLAYBACK FINISHED.");
+            });
+            next.setOnErrorListener((mp, what, extra) -> {
+                stopPlayback();
+                status.setText("PLAYBACK FAILED.");
+                detail.setText("Android could not play this output (" + what + ", " + extra + "). You can still try saving it to the device.");
+                return true;
+            });
+            next.prepareAsync();
+        } catch (Exception e) {
+            stopPlayback();
+            status.setText("PLAYBACK FAILED.");
+            detail.setText(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        }
+    }
+
+    private void stopPlayback() {
+        MediaPlayer current = player;
+        player = null;
+        if (current != null) {
+            try { if (current.isPlaying()) current.stop(); } catch (IllegalStateException ignored) { }
+            try { current.release(); } catch (Exception ignored) { }
+        }
+        if (playbackButton != null) {
+            playbackButton.setText("Play final output");
+            playbackButton.setEnabled(lastFinalArtifact != null && lastFinalArtifact.isFile() && lastFinalArtifact.length() > 0);
+        }
+    }
+
     private void chooseOutputDestination() {
         File source = lastFinalArtifact;
         if (source == null || !source.isFile() || source.length() == 0) {
@@ -237,6 +369,7 @@ public class MainActivity extends Activity {
         startActivityForResult(i, SAVE_OUTPUT);
     }
     @Override protected void onDestroy() {
+        stopPlayback();
         executor.shutdownNow();
         super.onDestroy();
     }
