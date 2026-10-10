@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.ActivityNotFoundException;
 import android.database.Cursor;
 import android.net.Uri;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
@@ -34,6 +35,8 @@ public class MainActivity extends Activity {
     private TextView status;
     private Button pick;
     private Button saveOutput;
+    private Button playbackButton;
+    private MediaPlayer player;
     private File lastFinalArtifact;
     private TextView detail;
     private ProgressBar progress;
@@ -87,6 +90,12 @@ public class MainActivity extends Activity {
         saveOutput.setEnabled(false);
         saveOutput.setOnClickListener(v -> chooseOutputDestination());
         root.addView(saveOutput);
+
+        playbackButton = new Button(this);
+        playbackButton.setText("Play final output");
+        playbackButton.setEnabled(false);
+        playbackButton.setOnClickListener(v -> playOrStopOutput());
+        root.addView(playbackButton);
         setContentView(root);
     }
 
@@ -144,6 +153,10 @@ public class MainActivity extends Activity {
             return;
         }
         Uri uri = data.getData();
+        stopPlayback();
+        lastFinalArtifact = null;
+        saveOutput.setEnabled(false);
+        playbackButton.setEnabled(false);
         status.setText("MEDIA SELECTED — preparing OSD…");
         detail.setText("Keep OSD open while processing runs.");
         pick.setEnabled(false);
@@ -170,8 +183,10 @@ public class MainActivity extends Activity {
                     progress.setVisibility(View.GONE);
                     lastFinalArtifact = finalArtifact;
                     saveOutput.setEnabled(true);
+                    playbackButton.setEnabled(true);
+                    playbackButton.setText("Play final output");
                     status.setText("PROCESSING COMPLETE — output and evidence found.");
-                    detail.setText("Final file:\n" + finalPath + "\n\nEvidence report:\n" + evidencePath + "\n\nUse Save final output to device to export a copy.");
+                    detail.setText("Final file:\n" + finalPath + "\n\nEvidence report:\n" + evidencePath + "\n\nPlay the result here or save a copy to your device.");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -223,6 +238,63 @@ public class MainActivity extends Activity {
         );
     }
 
+    private void playOrStopOutput() {
+        File source = lastFinalArtifact;
+        if (source == null || !source.isFile() || source.length() == 0) {
+            status.setText("Playback unavailable — no final output exists.");
+            playbackButton.setEnabled(false);
+            return;
+        }
+        if (player != null) {
+            stopPlayback();
+            status.setText("PLAYBACK STOPPED.");
+            return;
+        }
+        MediaPlayer next = new MediaPlayer();
+        player = next;
+        playbackButton.setEnabled(false);
+        playbackButton.setText("Preparing playback…");
+        status.setText("PREPARING FINAL OUTPUT PLAYBACK…");
+        try {
+            next.setDataSource(source.getAbsolutePath());
+            next.setOnPreparedListener(mp -> {
+                if (player != mp) { mp.release(); return; }
+                mp.start();
+                playbackButton.setText("Stop playback");
+                playbackButton.setEnabled(true);
+                status.setText("PLAYING FINAL OUTPUT.");
+            });
+            next.setOnCompletionListener(mp -> {
+                stopPlayback();
+                status.setText("PLAYBACK FINISHED.");
+            });
+            next.setOnErrorListener((mp, what, extra) -> {
+                stopPlayback();
+                status.setText("PLAYBACK FAILED.");
+                detail.setText("Android could not play this output (" + what + ", " + extra + "). You can still try saving it to the device.");
+                return true;
+            });
+            next.prepareAsync();
+        } catch (Exception e) {
+            stopPlayback();
+            status.setText("PLAYBACK FAILED.");
+            detail.setText(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        }
+    }
+
+    private void stopPlayback() {
+        MediaPlayer current = player;
+        player = null;
+        if (current != null) {
+            try { if (current.isPlaying()) current.stop(); } catch (IllegalStateException ignored) { }
+            try { current.release(); } catch (Exception ignored) { }
+        }
+        if (playbackButton != null) {
+            playbackButton.setText("Play final output");
+            playbackButton.setEnabled(lastFinalArtifact != null && lastFinalArtifact.isFile() && lastFinalArtifact.length() > 0);
+        }
+    }
+
     private void chooseOutputDestination() {
         File source = lastFinalArtifact;
         if (source == null || !source.isFile() || source.length() == 0) {
@@ -237,6 +309,7 @@ public class MainActivity extends Activity {
         startActivityForResult(i, SAVE_OUTPUT);
     }
     @Override protected void onDestroy() {
+        stopPlayback();
         executor.shutdownNow();
         super.onDestroy();
     }
