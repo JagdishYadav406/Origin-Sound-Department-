@@ -81,7 +81,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn('id="analyzeAudioEvidence"', self.html)
         self.assertIn("decodeAudioData(bytes.slice(0))", self.inline_script)
         self.assertIn("LOCAL_AUDIO_MEASURED", self.inline_script)
-        self.assertIn("low-level spans can be silence, quiet ambience, or soft performance", self.inline_script)
+        self.assertIn("Low-level spans can be silence, quiet ambience, or soft performance", self.inline_script)
         self.assertIn('id="soundLibraryFiles"', self.html)
         self.assertIn("LOCAL_SOUND_LIBRARY_INDEXED", self.inline_script)
         self.assertIn("LOCAL_SOUND_CUE_MATCH", self.inline_script)
