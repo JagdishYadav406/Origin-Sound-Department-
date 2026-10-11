@@ -138,6 +138,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("auto_mixed=false", self.inline_script)
         self.assertIn("not yet a confirmed mix placement", self.inline_script)
 
+    def test_ai_sound_plan_and_cue_proposals_are_exportable(self):
+        self.assertIn('id="exportAIPlanJSON"', self.html)
+        self.assertIn('id="exportAICuesCSV"', self.html)
+        self.assertIn("OSD-AI-SOUND-PLAN", self.inline_script)
+        self.assertIn("AI_SOUND_PLAN_EXPORTED", self.inline_script)
+        self.assertIn("AI_SOUND_CUES_EXPORTED", self.inline_script)
+        self.assertIn("'evidence_source','confidence','status'", self.inline_script)
+        self.assertIn("'NOT_APPLIED'", self.inline_script)
+        self.assertIn("AI proposals only; not applied to source media or mix", self.inline_script)
+        self.assertIn("$('exportAIPlanJSON').disabled=true", self.inline_script)
+
     def test_dialogue_sidechain_music_ducking_is_optional_and_persisted(self):
         self.assertIn('id="duckDepth"', self.html)
         self.assertIn('id="duckThreshold"', self.html)
