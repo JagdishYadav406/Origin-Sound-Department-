@@ -224,7 +224,7 @@ function compressLinkedStereo(left,right,sampleRate,thresholdDb,ratio,attackMs=1
  for(let i=0;i<left.length;i++){
   const detector=Math.max(Math.abs(left[i]),Math.abs(right[i])),coeff=detector>envelope?attack:release;envelope=coeff*envelope+(1-coeff)*detector;
   const level=envelope>0?20*Math.log10(envelope):-120,over=level-thresholdDb,reduction=over>0?over*(1-1/ratio):0;maxReduction=Math.max(maxReduction,reduction);
-  if(reduction>0){const g=Math.pow(10,-reduction/20);left[i]*=g;right[i]*=g}
+  if(reduction>0){const g=Math.pow(10,-reduction/20);left[i]*=g;if(right!==left)right[i]*=g}
  }
  return maxReduction;
 }
