@@ -62,6 +62,19 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("duration>600", self.inline_script)
         self.assertIn("normal duration, memory, decode and integrity checks", self.html)
 
+    def test_ai_sound_director_requires_explicit_consent_and_uses_bounded_sampled_frames(self):
+        self.assertIn('id="analyzeVideoAI"', self.html)
+        self.assertIn('id="aiServiceToken"', self.html)
+        self.assertIn('id="aiUploadConsent"', self.html)
+        self.assertIn("async function sampleVideoFrames(token)", self.inline_script)
+        self.assertIn("Math.min(8,Math.max(4,Math.ceil(duration/30)))", self.inline_script)
+        self.assertIn("!$('aiUploadConsent').checked", self.inline_script)
+        self.assertIn("original_video_file_uploaded=false", self.inline_script)
+        self.assertIn("audio_uploaded=false", self.inline_script)
+        self.assertIn("sampled-frame visual analysis", self.html)
+        self.assertIn("No sound is downloaded or automatically mixed", self.html)
+        self.assertIn("aiAnalysisController.abort()", self.inline_script)
+
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")

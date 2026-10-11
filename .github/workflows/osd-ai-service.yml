@@ -1,0 +1,30 @@
+name: OSD AI Sound Director service tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ai-service/**"
+      - ".github/workflows/osd-ai-service.yml"
+  pull_request:
+    paths:
+      - "ai-service/**"
+      - ".github/workflows/osd-ai-service.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check ai-service/server.mjs
+          node --check ai-service/server.test.mjs
+      - name: Test AI service bounds and result validation
+        run: node --test ai-service/server.test.mjs
