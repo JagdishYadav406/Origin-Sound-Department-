@@ -114,3 +114,5 @@
 - Linked the deployment guide from `ai-service/README.md`.
 - This is a deployable configuration candidate, not a live deployment. Hosting account authorization, the provider API key, a random service token, real provider/model access, and a real consented analysis are still required. Do not claim AI is operational until those steps and checks pass.
 - Validation next: run the AI service tests in CI, review the Blueprint YAML against provider conventions, then merge only if checks pass. After merge, the user must connect/import the Blueprint in the hosting provider and set secrets; this assistant has not provisioned an external hosting service.
+
+- Follow-up in the same candidate: added a **Test AI connection** control that validates the service URL, calls the health endpoint with an 8-second timeout, distinguishes unreachable/misconfigured/ready states, and does not claim real model access is verified. Added static assertions and a Chromium smoke case for invalid URL handling. Final candidate head: `92e8ec9a4139a8fcddfa405eab90c41e2d0cc418`.
