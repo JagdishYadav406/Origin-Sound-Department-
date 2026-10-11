@@ -103,6 +103,18 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("not a verified sonic match", self.inline_script)
         self.assertIn("does not identify speech, emotions, or sound events", self.html)
 
+    def test_audio_evidence_and_sound_library_have_separate_tool_sections(self):
+        evidence = self.html.index('<section class="panel audio-evidence-panel" id="audioEvidence"')
+        library = self.html.index('<section class="panel audio-evidence-panel sound-library-panel" id="soundLibraryPanel"')
+        video = self.html.index('<section class="panel video-study"')
+        self.assertLess(evidence, library)
+        self.assertLess(library, video)
+        self.assertIn('<h2 id="audioEvidenceHeading">Audio Evidence</h2>', self.html)
+        self.assertIn('<h2 id="soundLibraryHeading">Sound Library</h2>', self.html)
+        self.assertIn("AI uploads occur only after explicit consent", self.html)
+        self.assertIn("may re-encode lossy audio", self.html)
+        self.assertNotIn("It does not yet extract the video soundtrack into editable tracks", self.html)
+
     def test_sound_library_candidates_can_be_explicitly_loaded_through_safe_track_import(self):
         self.assertIn("Load candidate into selected track", self.inline_script)
         self.assertIn("Target mix track for", self.inline_script)
