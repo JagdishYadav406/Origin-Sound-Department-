@@ -108,3 +108,55 @@ class DeliveryGateTests(unittest.TestCase):
             self.assertFalse(ready.exists())
             self.assertFalse(blocked.exists())
 
+
+
+class MultiTrackMixTests(unittest.TestCase):
+    def _compatibility(self, stems):
+        return {
+            "checks": {"all_pass": True},
+            "streams": [{"sample_rate": 48000, "channels": 2}],
+        }
+
+    @patch.object(core, "_run")
+    @patch.object(core, "stem_compatibility")
+    def test_mix_uses_explicit_gains_without_amix_normalization(self, compat, run):
+        compat.return_value = self._compatibility(["dialogue.wav", "music.wav"])
+        core.mix_stems(
+            ["dialogue.wav", "music.wav"],
+            "mixed.wav",
+            roles=["Dialogue", "Music"],
+            gains=[-3.0, -9.0],
+        )
+        cmd = run.call_args.args[0]
+        filter_complex = cmd[cmd.index("-filter_complex") + 1]
+        self.assertIn("volume=-3.0000dB", filter_complex)
+        self.assertIn("volume=-9.0000dB", filter_complex)
+        self.assertIn("normalize=0", filter_complex)
+        self.assertIn("pcm_f32le", cmd)
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_wrong_gain_count(self, compat):
+        compat.return_value = self._compatibility(["a.wav", "b.wav"])
+        with self.assertRaisesRegex(core.OSDRunError, "Gain count"):
+            core.mix_stems(["a.wav", "b.wav"], "out.wav", gains=[0.0])
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_wrong_role_count(self, compat):
+        compat.return_value = self._compatibility(["a.wav", "b.wav"])
+        with self.assertRaisesRegex(core.OSDRunError, "Role count"):
+            core.mix_stems(["a.wav", "b.wav"], "out.wav", roles=["Dialogue"], gains=[0.0, 0.0])
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_nonfinite_or_out_of_range_gains(self, compat):
+        compat.return_value = self._compatibility(["a.wav"])
+        for gain in (float("nan"), float("inf"), -24.1, 12.1):
+            with self.subTest(gain=gain):
+                with self.assertRaisesRegex(core.OSDRunError, "gain must be finite"):
+                    core.mix_stems(["a.wav"], "out.wav", gains=[gain])
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_unimplemented_music_ducking_instead_of_ignoring_it(self, compat):
+        compat.return_value = self._compatibility(["a.wav"])
+        with self.assertRaisesRegex(core.OSDRunError, "not implemented"):
+            core.mix_stems(["a.wav"], "out.wav", gains=[0.0], duck_music_db=-6.0)
+
