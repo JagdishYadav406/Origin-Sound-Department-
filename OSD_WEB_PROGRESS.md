@@ -25,3 +25,11 @@
 - The first deployment attempt passed verification but failed at Pages configuration. A follow-up using an unsupported `administration` GITHUB_TOKEN permission caused the workflow to be rejected before jobs were created; this was caught in Actions and is being removed.
 - Deployment workflow no longer attempts to enable Pages using a GITHUB_TOKEN. Repository Pages must first be enabled once in Settings → Pages with the build source set to GitHub Actions. Once that setting is enabled, the workflow can deploy the verified `web/` directory.
 - Do not claim a live URL until the deploy job succeeds and the deployed URL is checked.
+
+
+## 2026-10-11 — Web regression coverage expansion
+
+- Created isolated branch `test/web-browser-smoke`; no change has been made to `main` by this branch action.
+- Expanded static regression coverage for project save/load and evidence controls, local-media policy, pre-render clipping gate, serialized WAV/PCM integrity checks, mobile breakpoints, keyboard focus visibility, and reduced-motion styling.
+- These are source-level regression checks, not a browser runtime test. The app still requires successful CI and real-browser/device acceptance before its runtime status can change from NOT VERIFIED.
+- Current source under test: `web/index.html`, blob SHA `6ebb003e4763e05ef68a48702d8686e1236c2c73`.

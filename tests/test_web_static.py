@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HTML = ROOT / "web" / "index.html"
 
+
 class OSDWebStaticSafetyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -37,6 +38,26 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("No standards-compliant true-peak measurement", self.inline_script)
         self.assertIn("No direct video muxing", self.inline_script)
         self.assertIn("OSD-WEB-QC-EVIDENCE", self.inline_script)
+
+    def test_project_recovery_controls_and_local_media_policy_exist(self):
+        for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
+            self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
+        self.assertIn("Audio files are not embedded", self.inline_script)
+        self.assertIn("has not been re-verified in this session", self.inline_script)
+
+    def test_mix_render_has_preallocation_clipping_gate_and_serialized_pcm_checks(self):
+        self.assertIn("PRE_RENDER_QC_BLOCKED", self.inline_script)
+        self.assertIn("output_allocated=false", self.inline_script)
+        self.assertIn("Independent WAV header/format validation failed", self.inline_script)
+        self.assertIn("serialized_pcm_peak_dbfs", self.inline_script)
+        self.assertIn("blob_size_check=PASS", self.inline_script)
+
+    def test_mobile_layout_and_keyboard_focus_rules_remain_present(self):
+        self.assertIn("@media(max-width:560px)", self.html)
+        self.assertIn("@media(max-width:360px)", self.html)
+        self.assertIn(":focus-visible", self.html)
+        self.assertIn("prefers-reduced-motion:reduce", self.html)
+
 
 if __name__ == "__main__":
     unittest.main()
