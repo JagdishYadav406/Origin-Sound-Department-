@@ -92,7 +92,7 @@ try {
   assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "muted-music render should complete");
   const mutedMusicPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
   assert.deepEqual(mutedMusicPcm, flatEqPcm, "muting music should leave the dialogue-only mix unchanged");
-  await page.locator("#mute-music").click();
+  // Keep music muted so the pre-existing hard-left pan assertion isolates dialogue.
 
   assert.equal(await page.locator("#eqbass-dialogue").count(), 1, "dialogue bass EQ control should exist");
   assert.equal(await page.locator("#eqmid-dialogue").count(), 1, "dialogue mid EQ control should exist");
@@ -120,7 +120,6 @@ try {
   assert.ok(panCheck.byteLength > 44, "panned WAV should contain PCM frames");
   assert.equal(panCheck.rightPeak, 0, "hard-left mono pan must leave the right channel silent");
 
-  await page.locator("#mute-music").click();
   await page.locator("#solo-dialogue").click();
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#saveProject").click();
