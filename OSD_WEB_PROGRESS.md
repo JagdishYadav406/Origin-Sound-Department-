@@ -18,3 +18,10 @@
 - Preserved the Android repository's root README; web-specific instructions are in `web/README.md`.
 - CI test invocation runs the test file directly to avoid package-name collisions.
 - Pages configuration requests enablement explicitly; deployment remains contingent on workflow success.
+
+
+## 2026-10-11 — Pages permission correction
+
+- The first deployment attempt passed verification but failed at Pages configuration. A follow-up using an unsupported `administration` GITHUB_TOKEN permission caused the workflow to be rejected before jobs were created; this was caught in Actions and is being removed.
+- Deployment workflow no longer attempts to enable Pages using a GITHUB_TOKEN. Repository Pages must first be enabled once in Settings → Pages with the build source set to GitHub Actions. Once that setting is enabled, the workflow can deploy the verified `web/` directory.
+- Do not claim a live URL until the deploy job succeeds and the deployed URL is checked.
