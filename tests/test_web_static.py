@@ -40,6 +40,9 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Three-band EQ is implemented.", self.html)
         self.assertNotIn("Sources with more than two channels are rejected rather than silently remapped. EQ, compression", self.html)
         self.assertIn("OSD-WEB-QC-EVIDENCE", self.inline_script)
+        self.assertIn("Previous render — OUTDATED", self.html)
+        self.assertIn("Latest completed render — CURRENT", self.inline_script)
+        self.assertIn("markMixPreviewStale", self.inline_script)
 
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
