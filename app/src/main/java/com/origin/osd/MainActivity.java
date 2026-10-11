@@ -1,6 +1,7 @@
 package com.origin.osd;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.ActivityNotFoundException;
 import android.database.Cursor;
@@ -10,6 +11,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.OpenableColumns;
 import android.widget.Button;
+import android.widget.EditText;
+import android.text.InputType;
 import android.widget.ProgressBar;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -31,12 +34,15 @@ import java.security.MessageDigest;
 import org.json.JSONObject;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final int PICK_MEDIA = 7;
     private static final int SAVE_OUTPUT = 8;
+    private static final int PICK_STEMS = 9;
     private LinearLayout root;
     private TextView status;
     private Button pick;
@@ -46,6 +52,9 @@ public class MainActivity extends Activity {
     private File lastFinalArtifact;
     private TextView detail;
     private ProgressBar progress;
+    private Uri multiTrackSourceUri;
+    private boolean selectingMultiTrack = false;
+    private Button multiTrackButton;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override public void onCreate(Bundle b) {
@@ -86,6 +95,18 @@ public class MainActivity extends Activity {
         pick.setText("Choose audio or video");
         pick.setOnClickListener(v -> chooseMedia());
         root.addView(pick);
+
+        multiTrackButton = new Button(this);
+        multiTrackButton.setText("Build multi-track soundtrack (video + 2+ audio tracks)");
+        multiTrackButton.setOnClickListener(v -> startMultiTrackFlow());
+        root.addView(multiTrackButton);
+
+        TextView mixHelp = new TextView(this);
+        mixHelp.setText("Select a video first, then choose 2 or more aligned audio tracks. Tracks are mixed at their selected gain; timeline offsets and fades are not yet available in this Android workflow.");
+        mixHelp.setTextSize(13);
+        mixHelp.setPadding(0, 0, 0, 12);
+        root.addView(mixHelp);
+
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setIndeterminate(true);
         progress.setVisibility(View.GONE);
@@ -103,6 +124,151 @@ public class MainActivity extends Activity {
         playbackButton.setOnClickListener(v -> playOrStopOutput());
         root.addView(playbackButton);
         setContentView(root);
+    }
+
+    private void startMultiTrackFlow() {
+        selectingMultiTrack = true;
+        multiTrackSourceUri = null;
+        status.setText("MULTI-TRACK — choose the source video first.");
+        detail.setText("The selected video provides the picture. The selected audio tracks replace its soundtrack in the final render.");
+        chooseMedia();
+    }
+
+    private void chooseAudioStems() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.setType("audio/*");
+        i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        try {
+            startActivityForResult(i, PICK_STEMS);
+        } catch (ActivityNotFoundException e) {
+            selectingMultiTrack = false;
+            multiTrackSourceUri = null;
+            status.setText("No compatible file picker is available for selecting audio tracks.");
+        }
+    }
+
+    private ArrayList<Uri> collectSelectedUris(Intent data) {
+        ArrayList<Uri> uris = new ArrayList<>();
+        if (data.getClipData() != null) {
+            for (int i = 0; i < data.getClipData().getItemCount(); i++) {
+                Uri uri = data.getClipData().getItemAt(i).getUri();
+                if (uri != null && !uris.contains(uri)) uris.add(uri);
+            }
+        } else if (data.getData() != null) {
+            uris.add(data.getData());
+        }
+        return uris;
+    }
+
+    private String stemRole(int index) {
+        String[] roles = new String[]{"Dialogue", "Music", "Sound Effects", "Ambience"};
+        return index < roles.length ? roles[index] : "Additional track " + (index + 1);
+    }
+
+    private void promptStemGain(ArrayList<Uri> uris, int index, ArrayList<Double> gains) {
+        if (index >= uris.size()) {
+            Uri source = multiTrackSourceUri;
+            selectingMultiTrack = false;
+            multiTrackSourceUri = null;
+            if (source == null) {
+                status.setText("Multi-track mix cancelled — source video is missing.");
+                return;
+            }
+            processMultiTrack(source, uris, gains);
+            return;
+        }
+        String filename = displayName(uris.get(index));
+        if (filename == null || filename.trim().isEmpty()) filename = "Audio track " + (index + 1);
+        EditText gainInput = new EditText(this);
+        gainInput.setSingleLine(true);
+        gainInput.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        gainInput.setText("0.0");
+        gainInput.setSelectAllOnFocus(true);
+        new AlertDialog.Builder(this)
+            .setTitle(stemRole(index) + " gain (dB)")
+            .setMessage(filename + "\nEnter a gain from -24 dB to +12 dB.")
+            .setView(gainInput)
+            .setNegativeButton("Cancel", (dialog, which) -> {
+                selectingMultiTrack = false;
+                multiTrackSourceUri = null;
+                status.setText("Multi-track setup cancelled; no render started.");
+            })
+            .setPositiveButton("Next", (dialog, which) -> {
+                try {
+                    double gain = Double.parseDouble(gainInput.getText().toString().trim());
+                    if (Double.isNaN(gain) || Double.isInfinite(gain) || gain < -24.0 || gain > 12.0) {
+                        selectingMultiTrack = false;
+                        multiTrackSourceUri = null;
+                        status.setText("Invalid track gain. Use -24 dB to +12 dB and start the setup again.");
+                        return;
+                    }
+                    gains.add(gain);
+                    promptStemGain(uris, index + 1, gains);
+                } catch (NumberFormatException e) {
+                    selectingMultiTrack = false;
+                    multiTrackSourceUri = null;
+                    status.setText("Invalid track gain. No render started.");
+                }
+            }).show();
+    }
+
+    private void processMultiTrack(Uri sourceUri, ArrayList<Uri> trackUris, ArrayList<Double> gains) {
+        stopPlayback();
+        lastFinalArtifact = null;
+        saveOutput.setEnabled(false);
+        playbackButton.setEnabled(false);
+        pick.setEnabled(false);
+        multiTrackButton.setEnabled(false);
+        progress.setVisibility(View.VISIBLE);
+        status.setText("MULTI-TRACK — preparing sources…");
+        detail.setText("Verifying imported files and preparing the soundtrack mix.");
+        executor.execute(() -> {
+            try {
+                File input = copyUriToInput(sourceUri, "source-");
+                File output = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
+                if (!output.exists() && !output.mkdirs()) throw new IllegalStateException("Unable to create OSD output directory");
+                deleteIfExists(new File(output, "evidence.json"));
+                deleteIfExists(new File(output, "OSD-final.wav"));
+                deleteIfExists(new File(output, "OSD-final.webm"));
+                ArrayList<String> stemPaths = new ArrayList<>();
+                ArrayList<String> roles = new ArrayList<>();
+                for (int i = 0; i < trackUris.size(); i++) {
+                    File stem = copyUriToInput(trackUris.get(i), "stem-" + (i + 1) + "-");
+                    stemPaths.add(stem.getAbsolutePath());
+                    roles.add(stemRole(i));
+                }
+                runOnUiThread(() -> status.setText("MULTI-TRACK — mixing, mastering and checking delivery…"));
+                runOsd(input, output, stemPaths, roles, gains);
+                File report = new File(output, "evidence.json");
+                File wav = new File(output, "OSD-final.wav");
+                File webm = new File(output, "OSD-final.webm");
+                File finalArtifact = wav.isFile() && wav.length() > 0 ? wav : (webm.isFile() && webm.length() > 0 ? webm : null);
+                if (!report.isFile() || report.length() == 0 || finalArtifact == null) throw new IllegalStateException("OSD returned without a final artifact and evidence report");
+                verifyDeliveryEvidence(report, finalArtifact, output);
+                String finalPath = finalArtifact.getAbsolutePath();
+                String evidencePath = report.getAbsolutePath();
+                runOnUiThread(() -> {
+                    pick.setEnabled(true);
+                    multiTrackButton.setEnabled(true);
+                    progress.setVisibility(View.GONE);
+                    lastFinalArtifact = finalArtifact;
+                    saveOutput.setEnabled(true);
+                    playbackButton.setEnabled(true);
+                    playbackButton.setText("Play final output");
+                    status.setText("MULTI-TRACK COMPLETE — output and evidence verified.");
+                    detail.setText("Final file:\n" + finalPath + "\n\nEvidence report:\n" + evidencePath + "\n\nTrack roles: " + roles + "\nTrack gains (dB): " + gains + "\n\nPlay the result or save a copy to your device.");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    pick.setEnabled(true);
+                    multiTrackButton.setEnabled(true);
+                    progress.setVisibility(View.GONE);
+                    status.setText("MULTI-TRACK FAILED — output was not verified.");
+                    detail.setText(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                });
+            }
+        });
     }
 
     private void chooseMedia() {
@@ -165,12 +331,34 @@ public class MainActivity extends Activity {
             });
             return;
         }
+        if (requestCode == PICK_STEMS) {
+            if (resultCode != RESULT_OK || data == null) {
+                selectingMultiTrack = false;
+                multiTrackSourceUri = null;
+                status.setText("Multi-track selection cancelled.");
+                return;
+            }
+            ArrayList<Uri> selectedTracks = collectSelectedUris(data);
+            if (selectedTracks.size() < 2) {
+                selectingMultiTrack = false;
+                multiTrackSourceUri = null;
+                status.setText("Multi-track mix needs at least 2 audio files. Nothing was processed.");
+                return;
+            }
+            promptStemGain(selectedTracks, 0, new ArrayList<Double>());
+            return;
+        }
         if (requestCode != PICK_MEDIA) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
             status.setText("No media selected.");
             return;
         }
         Uri uri = data.getData();
+        if (selectingMultiTrack) {
+            multiTrackSourceUri = uri;
+            chooseAudioStems();
+            return;
+        }
         stopPlayback();
         lastFinalArtifact = null;
         saveOutput.setEnabled(false);
@@ -294,10 +482,12 @@ public class MainActivity extends Activity {
         if (file.exists() && !file.delete()) throw new IllegalStateException("Unable to clear previous output marker: " + file.getName());
     }
 
-    private File copyUriToInput(Uri uri) throws Exception {
+    private File copyUriToInput(Uri uri) throws Exception { return copyUriToInput(uri, ""); }
+
+    private File copyUriToInput(Uri uri, String prefix) throws Exception {
         String name = displayName(uri);
         if (name == null || name.trim().isEmpty()) name = "input-media";
-        name = name.replaceAll("[^A-Za-z0-9._-]", "_");
+        name = prefix + name.replaceAll("[^A-Za-z0-9._-]", "_");
         File inputDir = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-input");
         if (!inputDir.exists() && !inputDir.mkdirs()) throw new IllegalStateException("Unable to create OSD input directory");
         File input = new File(inputDir, name);
@@ -335,10 +525,14 @@ public class MainActivity extends Activity {
     }
 
     private void runOsd(File input, File output) {
+        runOsd(input, output, null, null, null);
+    }
+
+    private void runOsd(File input, File output, List<String> stemPaths, List<String> roles, List<Double> gains) {
         if (!Python.isStarted()) Python.start(new AndroidPlatform(this));
         Python.getInstance().getModule("osd.core").callAttr(
             "run_pipeline", input.getAbsolutePath(), output.getAbsolutePath(),
-            -16.0, null, null, null, 0.0, true, false
+            -16.0, stemPaths, roles, gains, 0.0, true, false
         );
     }
 
