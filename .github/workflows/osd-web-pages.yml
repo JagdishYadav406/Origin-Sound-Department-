@@ -44,6 +44,35 @@ jobs:
           PY
           node --check /tmp/osd-web-inline.js
 
+      - name: Install browser smoke-test dependencies
+        run: npm install --no-save playwright
+
+      - name: Install Chromium for runtime smoke test
+        run: npx playwright install --with-deps chromium
+
+      - name: Serve the exact web source
+        run: |
+          python -m http.server 4173 --directory . > /tmp/osd-web-server.log 2>&1 &
+          echo $! > /tmp/osd-web-server.pid
+          python - <<'PY'
+          import time
+          import urllib.request
+          url = "http://127.0.0.1:4173/web/index.html"
+          for _ in range(50):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          print("Local web server ready")
+                          break
+              except Exception:
+                  time.sleep(0.2)
+          else:
+              raise SystemExit("Local web server did not become ready")
+          PY
+
+      - name: Run Chromium audio import, render, QC and project smoke test
+        run: node tests/web_browser_smoke.mjs
+
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: verify
