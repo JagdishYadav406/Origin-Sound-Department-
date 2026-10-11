@@ -6,7 +6,7 @@ This is the standalone browser edition of Origin Sound Department. It processes 
 
 - Dialogue, Music, SFX and Ambience tracks
 - Local mono/stereo audio import and SHA-256 fingerprints where browser support permits
-- Track gain, reversible three-band peaking EQ (bass 120 Hz, mid 1 kHz, treble 8 kHz), offset, trim and fades; master-bus trim
+- Track gain, reversible three-band peaking EQ (bass 120 Hz, mid 1 kHz, treble 8 kHz), pan/stereo balance, offset, trim and fades; master-bus trim
 - EQ is applied non-destructively to render-time working copies; neutral 0 dB settings preserve the original decoded samples
 - Stereo WAV rendering, pre-render peak checks, WAV/PCM integrity checks and rendered preview
 - Project JSON save/load and session evidence report
