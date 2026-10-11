@@ -64,6 +64,8 @@ try {
   const renderMessage = await page.locator("#message").innerText();
   assert.match(renderMessage, /^Stereo WAV created\b/, "render did not succeed: " + renderMessage);
   assert.equal(await page.locator("#mixPreview").isVisible(), true);
+  assert.equal(await page.locator("#mixPreviewStatus").innerText(), "Latest completed render — CURRENT");
+  assert.equal(await page.locator("#mixPreview").getAttribute("class"), "");
   assert.match(await page.locator("#log").innerText(), /header_check=PASS pcm_scan=PASS frame_count_check=PASS blob_size_check=PASS/);
 
   const audioSrc = await page.locator("#mixPlayer").getAttribute("src");
@@ -155,6 +157,8 @@ try {
   assert.equal(await page.locator("#solo-dialogue").getAttribute("aria-pressed"), "true", "loading project should restore solo state");
   assert.equal(await page.locator("#mute-music").getAttribute("aria-pressed"), "true", "loading project should restore mute state");
   assert.match(await page.locator("#projectNotice").innerText(), /Audio was not embedded/, "load must clearly require relinking source audio");
+  assert.equal(await page.locator("#mixPreviewStatus").innerText(), "Previous render — OUTDATED", "project settings changes must invalidate the old preview");
+  assert.equal(await page.locator("#mixPreview").getAttribute("class"), "stale", "outdated preview must receive warning styling");
 
 
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
@@ -164,6 +168,7 @@ try {
     preflightAndPostDecodeMemoryChecks: "PASS",
     stereoWavRenderAndSerializedPcmQc: "PASS",
     localPreview: "PASS",
+    stalePreviewInvalidation: "PASS",
     trackMuteSoloRenderAndProjectPersistence: "PASS",
     projectLoadRoundTrip: "PASS",
     projectJsonDownloadAndFingerprint: "PASS",
