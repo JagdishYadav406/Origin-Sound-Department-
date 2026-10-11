@@ -193,6 +193,21 @@ def stem_compatibility(stems,duration_tolerance=0.15):
             'streams':[{'path':str(s),'duration':i['duration'],'sample_rate':i['sample_rate'],'channels':i['channels'],
                         'channel_layout':i.get('effective_channel_layout'),'channel_map':i.get('channel_map')} for s,i in zip(stems,infos)]}
 
+def _assert_stem_durations(base_duration, stem_infos, tolerance=0.15):
+    try:
+        base=float(base_duration)
+        durations=[float(info['duration']) for info in stem_infos]
+    except (TypeError, ValueError, KeyError, OverflowError) as exc:
+        raise OSDRunError('Base and stem durations must be measurable') from exc
+    if not math.isfinite(base) or base <= 0 or any(not math.isfinite(d) or d <= 0 for d in durations):
+        raise OSDRunError('Base and stem durations must be positive finite measurements')
+    mismatched=[round(d, 6) for d in durations if abs(d-base)>tolerance]
+    if mismatched:
+        raise OSDRunError(
+            'Stem duration must match the source timeline within %.3f s; source=%.6f s, mismatched stems=%s'
+            % (tolerance, base, mismatched)
+        )
+
 def source_quality(path):
     info=inspect_media(path)
     return {'status':'OK','sample_rate':info['sample_rate'],'channels':info['channels'],'channel_layout':info['effective_channel_layout'],
@@ -345,8 +360,11 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
             shutil.copy2(src,original); manifest['artifacts']['source-copy']=_artifact_record(original); manifest['completed_stages'].append('source_copy'); _write_resume_manifest(stage,manifest)
         stem_paths=[Path(x) for x in (stems or [])]
         if stem_paths:
+            stem_infos=[]
             for st in stem_paths:
                 if not st.exists() or not st.is_file(): raise OSDRunError(f'Stem not found: {st}')
+                stem_infos.append(inspect_media(st))
+            _assert_stem_durations(inspection['duration'], stem_infos)
             mix_source=stage/'mixed-source.wav'
             if not _resume_artifact(manifest,'mixed-source'):
                 mix_stems(stem_paths,mix_source,roles=roles,gains=gains,duck_music_db=duck_music_db); manifest['artifacts']['mixed-source']=_artifact_record(mix_source); manifest['completed_stages'].append('stem_mix'); _write_resume_manifest(stage,manifest)
