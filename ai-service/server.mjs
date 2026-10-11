@@ -211,6 +211,81 @@ async function callVisionModel(request, fetchImpl = fetch) {
   catch (error) { throw Object.assign(new Error(error.message || "AI result failed validation."), { status: 502 }); }
 }
 
+const AUDIO_MODEL = process.env.OSD_AUDIO_MODEL || "gpt-audio-1.5";
+const MAX_AUDIO_DATA_CHARS = 7_000_000;
+const MAX_AUDIO_DURATION_SECONDS = 90;
+
+function validateAudioRequest(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw Object.assign(new Error("Request must be a JSON object."), { status: 400 });
+  if (typeof body.durationSeconds !== "number" || !Number.isFinite(body.durationSeconds) || body.durationSeconds <= 0 || body.durationSeconds > MAX_AUDIO_DURATION_SECONDS) {
+    throw Object.assign(new Error("Audio duration must be greater than 0 and no more than 90 seconds."), { status: 400 });
+  }
+  const dataUrl = body.audioDataUrl;
+  if (typeof dataUrl !== "string" || dataUrl.length > MAX_AUDIO_DATA_CHARS) throw Object.assign(new Error("Audio is missing or exceeds the 7 MB encoded audio limit."), { status: 413 });
+  const match = /^data:audio\/(wav|mpeg);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  if (!match) throw Object.assign(new Error("Provide a base64 WAV or MP3 audio data URL."), { status: 400 });
+  return {
+    durationSeconds: body.durationSeconds,
+    format: match[1] === "mpeg" ? "mp3" : "wav",
+    audioBase64: match[2],
+    intent: typeof body.intent === "string" ? body.intent.slice(0, 1200) : ""
+  };
+}
+
+function extractChatText(payload) {
+  const content = payload?.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    const textPart = content.find((part) => part.type === "text" && typeof part.text === "string");
+    if (textPart) return textPart.text;
+  }
+  throw new Error("Audio model returned no text analysis.");
+}
+
+async function callAudioModel(request, fetchImpl = fetch) {
+  if (!API_KEY) throw Object.assign(new Error("AI provider is not configured: OPENAI_API_KEY is missing on the service."), { status: 503 });
+  const prompt = [
+    "You are OSD Sound Director, an audio-aware assistant to a human sound editor.",
+    "Analyze the supplied audio only. Report audible evidence, not visual events. Do not hallucinate exact words, instruments, source identities, or timestamps when uncertain.",
+    "Return ONLY a JSON object matching this structure: {summary:string,scenes:[{start_seconds:number,end_seconds:number,description:string,visible_evidence:string,mood:string,energy:string,confidence:number}],cues:[{category:'music'|'sfx'|'ambience'|'dialogue'|'transition',start_seconds:number,end_seconds:number,description:string,rationale:string,confidence:number,search_terms:string[]}],limitations:string[]}.",
+    "In scenes, the field visible_evidence is retained for API compatibility; put AUDIBLE evidence there, never visual claims.",
+    "Time-code only broad regions that can be reasonably inferred from the audio. All timestamps must be within the clip duration. If a cue cannot be localized, use a broad interval and lower confidence.",
+    "Assess audible dialogue/speech presence and intelligibility only when supported; distinguish speech presence from transcription. Describe music, ambience, discrete effects, clipping/noise risks, masking, dynamic contrast, and useful sound-design opportunities.",
+    "Recommend soundtrack actions such as preserving dialogue, reducing masking music, or adding a type of sound. Do not claim a sound-library asset is available. Keep the original performance; avoid automatic aggressive cleanup. No audio processing is applied.",
+    `Clip duration: ${request.durationSeconds.toFixed(3)} seconds.`,
+    request.intent ? `Editor intent: ${request.intent}` : "Editor intent: propose a balanced, natural, cinematic sound plan while protecting dialogue."
+  ].join("\n");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  let response;
+  try {
+    response = await fetchImpl("https://api.openai.com/v1/chat/completions", {
+      method: "POST", signal: controller.signal,
+      headers: { "authorization": `Bearer ${API_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        model: AUDIO_MODEL, store: false, modalities: ["text"],
+        messages: [{ role: "user", content: [
+          { type: "text", text: prompt },
+          { type: "input_audio", input_audio: { data: request.audioBase64, format: request.format } }
+        ] }]
+      })
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") throw Object.assign(new Error("Audio AI analysis timed out after 60 seconds."), { status: 504 });
+    throw Object.assign(new Error("Audio AI provider could not be reached."), { status: 502 });
+  } finally { clearTimeout(timer); }
+  if (!response.ok) {
+    const message = response.status === 429 ? "AI provider rate limit reached; retry later." : "Audio AI provider rejected or failed the request.";
+    throw Object.assign(new Error(message), { status: response.status === 429 ? 429 : 502 });
+  }
+  const payload = await response.json();
+  let parsed;
+  try { parsed = JSON.parse(extractChatText(payload).replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "")); }
+  catch { throw Object.assign(new Error("Audio model returned invalid JSON; no result was accepted."), { status: 502 }); }
+  try { return validateModelResult(parsed, request.durationSeconds); }
+  catch (error) { throw Object.assign(new Error(error.message || "Audio analysis failed validation."), { status: 502 }); }
+}
+
 export function createServer({ fetchImpl = fetch } = {}) {
   return http.createServer(async (req, res) => {
     const origin = req.headers.origin || "";
@@ -221,9 +296,9 @@ export function createServer({ fetchImpl = fetch } = {}) {
     }
     const url = new URL(req.url || "/", "http://localhost");
     if (req.method === "GET" && url.pathname === "/v1/health") {
-      return json(res, 200, { status: "ok", configured: Boolean(API_KEY && SERVICE_TOKEN), provider: "openai-responses", model: MODEL, limits: { maxDurationSeconds: MAX_DURATION_SECONDS, maxFrames: MAX_FRAMES, maxRequestBytes: MAX_BODY_BYTES } }, cors);
+      return json(res, 200, { status: "ok", configured: Boolean(API_KEY && SERVICE_TOKEN), provider: "openai", model: MODEL, audioModel: AUDIO_MODEL, limits: { maxDurationSeconds: MAX_DURATION_SECONDS, maxAudioDurationSeconds: MAX_AUDIO_DURATION_SECONDS, maxFrames: MAX_FRAMES, maxRequestBytes: MAX_BODY_BYTES } }, cors);
     }
-    if (url.pathname !== "/v1/analyze" || req.method !== "POST") return json(res, 404, { error: "Not found." }, cors);
+    if (!["/v1/analyze", "/v1/analyze-audio"].includes(url.pathname) || req.method !== "POST") return json(res, 404, { error: "Not found." }, cors);
     if (origin && !ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: "Origin is not allowed." });
     if (!SERVICE_TOKEN) return json(res, 503, { error: "AI service access is not configured. Set OSD_SERVICE_TOKEN on the server." }, cors);
     if (req.headers.authorization !== `Bearer ${SERVICE_TOKEN}`) return json(res, 401, { error: "Service authentication failed." }, cors);
@@ -238,6 +313,15 @@ export function createServer({ fetchImpl = fetch } = {}) {
     const requestId = randomUUID();
     try {
       const raw = await readJson(req);
+      if (url.pathname === "/v1/analyze-audio") {
+        const request = validateAudioRequest(raw);
+        const analysis = await callAudioModel(request, fetchImpl);
+        return json(res, 200, {
+          requestId, status: "completed", model: AUDIO_MODEL, method: "audio-aware-model",
+          durationSeconds: request.durationSeconds, coverage: "audio input analyzed; timestamps are model estimates and must be reviewed",
+          analysis
+        }, cors);
+      }
       const request = validateRequest(raw);
       const result = await callVisionModel(request, fetchImpl);
       return json(res, 200, {

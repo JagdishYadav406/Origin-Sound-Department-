@@ -71,9 +71,22 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("!$('aiUploadConsent').checked", self.inline_script)
         self.assertIn("original_video_file_uploaded=false", self.inline_script)
         self.assertIn("audio_uploaded=false", self.inline_script)
-        self.assertIn("sampled-frame visual analysis", self.html)
+        self.assertIn("Visual analysis samples frames", self.html)
         self.assertIn("No sound is downloaded or automatically mixed", self.html)
         self.assertIn("aiAnalysisController.abort()", self.inline_script)
+
+    def test_ai_audio_analysis_requires_explicit_per_file_consent_and_bounded_upload(self):
+        self.assertIn('id="aiAudioFile"', self.html)
+        self.assertIn('id="aiAudioConsent"', self.html)
+        self.assertIn('id="analyzeAudioAI"', self.html)
+        self.assertIn("/v1/analyze-audio", self.inline_script)
+        self.assertIn("file.size>4_500_000", self.inline_script)
+        self.assertIn("audioMeta>90", self.inline_script)
+        self.assertIn("explicit_consent=true audio_uploaded=true", self.inline_script)
+        self.assertIn("$('aiAudioConsent').checked=false", self.inline_script)
+        self.assertIn("$('aiUploadConsent').checked=false", self.inline_script)
+        self.assertIn("renderAIResult(data,'audio')", self.inline_script)
+        self.assertIn("Audio AI is separate from local measurements", self.html)
 
     def test_local_audio_evidence_and_sound_library_are_explicit_and_session_scoped(self):
         self.assertIn('id="audioEvidence"', self.html)

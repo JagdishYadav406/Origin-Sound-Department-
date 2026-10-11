@@ -108,6 +108,65 @@ test("valid sampled-frame request returns schema-checked, bounded cue recommenda
   });
 });
 
+test("audio analysis requires a supported format and returns validated audio cues", async () => {
+  let providerBody;
+  const audioResult = {
+    summary: "Speech is present over a soft, sustained musical bed; some words may be masked.",
+    scenes: [{
+      start_seconds: 0, end_seconds: 5,
+      description: "Speech over a sustained background layer.",
+      visible_evidence: "Audible speech and a continuous tonal bed are discernible in the recording.",
+      mood: "reflective", energy: "low", confidence: 0.72
+    }],
+    cues: [{
+      category: "music", start_seconds: 0, end_seconds: 5,
+      description: "Lower background music during speech and preserve natural voice dynamics.",
+      rationale: "The background layer appears to compete with speech in parts of the clip.",
+      confidence: 0.68, search_terms: ["restrained underscore", "dialogue-friendly background"]
+    }],
+    limitations: ["Speech transcription and exact event timestamps are not guaranteed."]
+  };
+  const fakeFetch = async (url, options) => {
+    assert.equal(url, "https://api.openai.com/v1/chat/completions");
+    providerBody = JSON.parse(options.body);
+    assert.equal(providerBody.model, "gpt-audio-1.5");
+    return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify(audioResult) } }] }) };
+  };
+  await withServer(fakeFetch, async (base) => {
+    const response = await fetch(`${base}/v1/analyze-audio`, {
+      method: "POST",
+      headers: { authorization: "Bearer test-service-token", "content-type": "application/json" },
+      body: JSON.stringify({
+        durationSeconds: 5,
+        audioDataUrl: "data:audio/wav;base64,UklGRg==",
+        intent: "Preserve the narrator's natural performance."
+      })
+    });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.method, "audio-aware-model");
+    assert.equal(data.coverage, "audio input analyzed; timestamps are model estimates and must be reviewed");
+    assert.equal(data.analysis.cues[0].category, "music");
+    assert.equal(providerBody.modalities[0], "text");
+    assert.ok(providerBody.messages[0].content.some((part) => part.type === "input_audio"));
+    assert.equal(providerBody.store, false);
+  });
+});
+
+test("audio analysis rejects unsupported formats before provider access", async () => {
+  let calls = 0;
+  await withServer(async () => { calls++; throw new Error("provider should not be called"); }, async (base) => {
+    const response = await fetch(`${base}/v1/analyze-audio`, {
+      method: "POST",
+      headers: { authorization: "Bearer test-service-token", "content-type": "application/json" },
+      body: JSON.stringify({ durationSeconds: 3, audioDataUrl: "data:audio/webm;base64,AAAA" })
+    });
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /WAV or MP3/);
+    assert.equal(calls, 0);
+  });
+});
+
 test("rejects out-of-range timestamps from the provider", async () => {
   const invalid = structuredClone(sampleAnalysis);
   invalid.cues[0].end_seconds = 9;
