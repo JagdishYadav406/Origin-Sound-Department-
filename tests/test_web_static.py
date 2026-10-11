@@ -54,6 +54,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("serialized_pcm_peak_dbfs", self.inline_script)
         self.assertIn("blob_size_check=PASS", self.inline_script)
 
+    def test_old_mix_preview_is_marked_outdated_after_edits(self):
+        self.assertIn('id="mixPreviewStatus"', self.html)
+        self.assertIn('id="mixPreviewNotice"', self.html)
+        self.assertIn("function markMixPreviewStale(reason)", self.inline_script)
+        self.assertIn("Previous render — OUTDATED", self.inline_script)
+        self.assertIn("Latest completed render — CURRENT", self.inline_script)
+        self.assertIn("Render again before exporting or using it as the current mix.", self.inline_script)
+
     def test_mobile_layout_and_keyboard_focus_rules_remain_present(self):
         self.assertIn("@media(max-width:560px)", self.html)
         self.assertIn("@media(max-width:360px)", self.html)
