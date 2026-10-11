@@ -101,7 +101,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("audio_embeddings=false", self.inline_script)
         self.assertIn("persisted=false", self.inline_script)
         self.assertIn("not a verified sonic match", self.inline_script)
-        self.assertIn("does not identify speech, emotions, or sound events", self.html)
+        self.assertIn("does not infer speech, emotions, or sound events", self.html)
 
     def test_audio_evidence_and_sound_library_have_separate_tool_sections(self):
         evidence = self.html.index('<section class="panel audio-evidence-panel" id="audioEvidence"')
