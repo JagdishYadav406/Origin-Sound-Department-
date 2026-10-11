@@ -78,3 +78,10 @@
 - Project schema advanced to version 5; versions 1–4 default pan to center. Pan values are included in evidence and project JSON, reset returns to center, and render logs record the setting.
 - Extended Chromium smoke test to hard-pan the generated mono source left and assert that the serialized WAV's right channel is silent, while checking pan persists in the saved project.
 - Candidate app/test changes are committed on this branch; CI has not yet completed for this candidate. Do not merge until browser verification passes. Device compatibility remains unverified.
+
+
+## 2026-10-11 — EQ release merged and deployed
+
+- PR #26 was squash-merged to main as commit `39b4e2f83468365466cfdc0447d6328aaef004a7`.
+- Candidate Chromium verification passed on PR run `38120378125`; after merge, main web workflow run `38120477121` completed successfully, including verification and GitHub Pages deployment.
+- EQ is now part of the main web edition. The physical Galaxy A20 still has not been tested; live site accessibility/playback on that device remains an acceptance step.
