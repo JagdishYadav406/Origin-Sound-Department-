@@ -60,3 +60,13 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
 - Added an explicit opt-in to inspect video-only sources when stem replacement is requested; ordinary single-file processing still rejects media with no audio stream.
 - Added a regression test with a self-contained temporary video-only fixture. CI is running for this follow-up; results must be checked against the latest branch head before calling it verified.
 - Commits: implementation `b847b904d6a99754ea9de5801fa5d14b9579506e`; regression test `0eb30c0b347090f3fe8adabeba8bcad6ad10786d`.
+
+
+## 2026-10-11 — Output preservation and import-source size guard (follow-up candidate)
+
+- Created branch `fix/output-preservation-import-verification` from the successful multi-track candidate head `7225448e6d3844b5f2663edc101e5e3ebb5b7108`; main and the existing draft PR were not modified.
+- Replaced the shared output folder with a unique per-run output directory for both single-file and multi-track workflows. This removes pre-run deletion of the previous final WAV/video and evidence files, preserving earlier deliverables across subsequent runs.
+- Added best-effort Android document-provider source-size inspection. When the provider exposes a non-null source byte count, OSD checks it against bytes copied; the existing copied-file size and independent SHA-256 re-read checks remain in place. If provider metadata is absent/unavailable, OSD falls back to independent copy/hash checks.
+- Updated README to describe per-run output preservation.
+- Added Python static regression guards for unique output paths, preservation of previous deliverables, and source-size/hash checks.
+- Status: source changes prepared on an isolated branch. Python regression tests, Android release compilation/signature verification, artifact checksum validation, and physical-device tests are pending for this follow-up head. No merge or release claim made.

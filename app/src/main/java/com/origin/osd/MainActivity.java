@@ -226,11 +226,8 @@ public class MainActivity extends Activity {
         executor.execute(() -> {
             try {
                 File input = copyUriToInput(sourceUri, "source-");
-                File output = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
+                File output = createRunOutputDirectory();
                 if (!output.exists() && !output.mkdirs()) throw new IllegalStateException("Unable to create OSD output directory");
-                deleteIfExists(new File(output, "evidence.json"));
-                deleteIfExists(new File(output, "OSD-final.wav"));
-                deleteIfExists(new File(output, "OSD-final.webm"));
                 ArrayList<String> stemPaths = new ArrayList<>();
                 ArrayList<String> roles = new ArrayList<>();
                 for (int i = 0; i < trackUris.size(); i++) {
@@ -376,11 +373,8 @@ public class MainActivity extends Activity {
         executor.execute(() -> {
             try {
                 File input = copyUriToInput(uri);
-                File output = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
+                File output = createRunOutputDirectory();
                 if (!output.exists() && !output.mkdirs()) throw new IllegalStateException("Unable to create OSD output directory");
-                deleteIfExists(new File(output, "evidence.json"));
-                deleteIfExists(new File(output, "OSD-final.wav"));
-                deleteIfExists(new File(output, "OSD-final.webm"));
                 runOnUiThread(() -> status.setText("PROCESSING — OSD engine is running…"));
                 runOsd(input, output);
                 File report = new File(output, "evidence.json");
@@ -491,6 +485,7 @@ public class MainActivity extends Activity {
     private File copyUriToInput(Uri uri) throws Exception { return copyUriToInput(uri, ""); }
 
     private File copyUriToInput(Uri uri, String prefix) throws Exception {
+        long expectedSourceBytes = displaySize(uri);
         String name = displayName(uri);
         if (name == null || name.trim().isEmpty()) name = "input-media";
         name = prefix + name.replaceAll("[^A-Za-z0-9._-]", "_");
@@ -514,11 +509,38 @@ public class MainActivity extends Activity {
         if (!input.isFile() || input.length() == 0) throw new IllegalStateException("Selected media could not be copied into OSD");
         StringBuilder importedHash = new StringBuilder();
         for (byte b : importDigest.digest()) importedHash.append(String.format(java.util.Locale.ROOT, "%02x", b & 0xff));
-        if (input.length() != importedBytes || !sha256(input).equalsIgnoreCase(importedHash.toString())) {
+        if ((expectedSourceBytes >= 0 && importedBytes != expectedSourceBytes)
+                || input.length() != importedBytes
+                || !sha256(input).equalsIgnoreCase(importedHash.toString())) {
             deleteIfExists(input);
-            throw new IllegalStateException("Media import verification failed — copied file size or SHA-256 does not match the selected source");
+            throw new IllegalStateException("Media import verification failed — copied byte count does not match source metadata or the imported copy hash");
         }
         return input;
+    }
+
+    private long displaySize(Uri uri) {
+        Cursor c = null;
+        try {
+            c = getContentResolver().query(uri, new String[]{OpenableColumns.SIZE}, null, null, null);
+            if (c != null && c.moveToFirst()) {
+                int index = c.getColumnIndex(OpenableColumns.SIZE);
+                if (index >= 0 && !c.isNull(index)) return c.getLong(index);
+            }
+        } catch (Exception ignored) {
+            // Providers may omit or misreport size; independent copy/hash checks still apply.
+        } finally {
+            if (c != null) c.close();
+        }
+        return -1L;
+    }
+
+    private File createRunOutputDirectory() throws Exception {
+        File base = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "OSD-output");
+        if (!base.exists() && !base.mkdirs()) throw new IllegalStateException("Unable to create OSD output directory");
+        String runId = System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        File output = new File(base, "run-" + runId);
+        if (!output.mkdirs()) throw new IllegalStateException("Unable to create a unique OSD run directory");
+        return output;
     }
 
     private String displayName(Uri uri) {

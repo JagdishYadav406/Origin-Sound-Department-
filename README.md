@@ -17,7 +17,7 @@ OSD is an Android audio/video processing app with a Python/FFmpeg processing cor
 4. For each track, enter a gain from -24 dB to +12 dB. Track roles are assigned by selection order: Dialogue, Music, Sound Effects, Ambience, then Additional track.
 5. Wait for mix, master, QC, and delivery verification. Play or export the result only if OSD reports successful verification.
 
-The source video supplies the picture; selected audio stems replace its soundtrack. The source and imported tracks are copied into OSD's app-specific storage and are not overwritten.
+The source video supplies the picture; selected audio stems replace its soundtrack. The source and imported tracks are copied into OSD's app-specific storage and are not overwritten. Each processing run receives a unique output directory, so a new run does not erase the previous run's final artifact or evidence. Use **Save final output to device** to export a verified result to a user-selected location.
 
 ## Multi-track beta constraints (important)
 - Tracks must be mutually compatible and their durations must match the source timeline within 0.15 seconds.
