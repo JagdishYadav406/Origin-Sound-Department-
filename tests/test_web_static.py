@@ -53,7 +53,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
-        self.assertIn("Audio files are not embedded", self.inline_script)
+        self.assertIn("Audio and video media are not embedded", self.inline_script)
         self.assertIn("has not been re-verified in this session", self.inline_script)
 
     def test_mix_render_has_preallocation_clipping_gate_and_serialized_pcm_checks(self):
