@@ -131,7 +131,7 @@ def _timing_info(probe, audio, video, format_duration):
             'non_zero_start_time_detected':irregular_start,'timing_status':'OK' if positive_duration and duration_consistent and not irregular_start else 'IRREGULAR',
             'tolerance_seconds':0.15}
 
-def inspect_media(path):
+def inspect_media(path, allow_video_only=False):
     path=Path(path)
     if not path.exists() or not path.is_file(): raise OSDRunError(f'Input not found: {path}')
     try: p=ffprobe(path)
@@ -139,8 +139,22 @@ def inspect_media(path):
     streams=p.get('streams',[])
     audio=[s for s in streams if s.get('codec_type')=='audio']; video=[s for s in streams if s.get('codec_type')=='video']
     if not audio:
-        if video: raise OSDRunError('Unsupported media stream: input contains video but no audio stream')
-        raise OSDRunError('Unsupported media stream: input contains no audio stream')
+        if not video: raise OSDRunError('Unsupported media stream: input contains no audio stream')
+        if not allow_video_only:
+            raise OSDRunError('Unsupported media stream: input contains video but no audio stream')
+        timing=_timing_info(p,None,video,p.get('format',{}).get('duration',0))
+        if timing['format_duration'] is None or timing['format_duration']<=0:
+            raise OSDRunError(f'Unsupported timing properties in video-only input: {path}')
+        if timing['timing_status']!='OK':
+            raise OSDRunError(f'Timing irregular in video-only input: {path}: {json.dumps(timing,sort_keys=True)}')
+        return {'path':str(path),'duration':float(timing['format_duration']),'audio_codec':None,'sample_rate':0,'channels':0,
+                'channel_layout':None,'effective_channel_layout':None,'channel_map':None,'video':True,
+                'video_codec':video[0].get('codec_name'),'audio_stream_count':0,'video_stream_count':len(video),
+                'selected_audio_index':None,'audio_selection_policy':'no_audio_video_source_replaced_by_stems',
+                'audio_streams':[],'format_name':p.get('format',{}).get('format_name'),
+                'format_long_name':p.get('format',{}).get('format_long_name'),'size_bytes':path.stat().st_size,
+                'sha256':sha256(path),'timing':timing,
+                'media_validation':{'status':'OK','classification':'VALID_VIDEO_ONLY_SOURCE'}}
     audio_index,a,audio_selection=_select_audio_stream(audio)
     try:
         sample_rate=int(a.get('sample_rate') or 0); channels=int(a.get('channels') or 0); duration=float(p['format'].get('duration',0) or 0)
@@ -208,8 +222,8 @@ def _assert_stem_durations(base_duration, stem_infos, tolerance=0.15):
             % (tolerance, base, mismatched)
         )
 
-def source_quality(path):
-    info=inspect_media(path)
+def source_quality(path, allow_video_only=False):
+    info=inspect_media(path, allow_video_only=allow_video_only)
     return {'status':'OK','sample_rate':info['sample_rate'],'channels':info['channels'],'channel_layout':info['effective_channel_layout'],
             'duration':info['duration'],'source_sha256':info['sha256']}
 
@@ -353,7 +367,7 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
     t=time.time(); lifecycle=['PLANNED','AUTHORIZED','STARTED']
     try:
         lifecycle.append('EXECUTING')
-        inspection=inspect_media(src); source_hash_before=inspection['sha256']; source_assessment=source_quality(src)
+        inspection=inspect_media(src, allow_video_only=bool(stems)); source_hash_before=inspection['sha256']; source_assessment=source_quality(src, allow_video_only=bool(stems))
         original=stage/('source-copy'+src.suffix)
         if _resume_artifact(manifest,'source-copy'): original=_resume_artifact(manifest,'source-copy')
         else:
