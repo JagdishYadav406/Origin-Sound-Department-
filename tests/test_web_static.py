@@ -187,6 +187,8 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("TIMELINE_CLIP_ADDED", self.inline_script)
         self.assertIn("TIMELINE_CLIP_REMOVED", self.inline_script)
         self.assertIn("extraClips.reduce", self.inline_script)
+        self.assertIn("if(!ts.length&&!extraClips.length)return null", self.inline_script)
+        self.assertIn("(!ts.length&&!extraClips.length)||rendering", self.inline_script)
         self.assertIn("timelineClips:extraClips.map", self.inline_script)
         self.assertIn("mediaEmbedded:false", self.inline_script)
         self.assertIn("source_preserved=true", self.inline_script)
