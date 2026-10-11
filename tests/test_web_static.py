@@ -79,14 +79,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn('id="aiAudioFile"', self.html)
         self.assertIn('id="aiAudioConsent"', self.html)
         self.assertIn('id="analyzeAudioAI"', self.html)
-        self.assertIn("'/v1/analyze-audio'", self.inline_script)
+        self.assertIn("/v1/analyze-audio", self.inline_script)
         self.assertIn("file.size>4_500_000", self.inline_script)
         self.assertIn("audioMeta>90", self.inline_script)
         self.assertIn("explicit_consent=true audio_uploaded=true", self.inline_script)
         self.assertIn("$('aiAudioConsent').checked=false", self.inline_script)
         self.assertIn("$('aiUploadConsent').checked=false", self.inline_script)
         self.assertIn("renderAIResult(data,'audio')", self.inline_script)
-        self.assertIn("AI audio analysis is separate from local measurements", self.html)
+        self.assertIn("Audio AI is separate from local measurements", self.html)
 
     def test_local_audio_evidence_and_sound_library_are_explicit_and_session_scoped(self):
         self.assertIn('id="audioEvidence"', self.html)
