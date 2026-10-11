@@ -116,3 +116,15 @@
 - Validation next: run the AI service tests in CI, review the Blueprint YAML against provider conventions, then merge only if checks pass. After merge, the user must connect/import the Blueprint in the hosting provider and set secrets; this assistant has not provisioned an external hosting service.
 
 - Follow-up in the same candidate: added a **Test AI connection** control that validates the service URL, calls the health endpoint with an 8-second timeout, distinguishes unreachable/misconfigured/ready states, and does not claim real model access is verified. Added static assertions and a Chromium smoke case for invalid URL handling. Final candidate head: `92e8ec9a4139a8fcddfa405eab90c41e2d0cc418`.
+
+
+## 2026-10-11 — User-facing OSD access and integration checkpoint
+
+- Live web edition for manual user testing: https://jagdishyadav406.github.io/Origin-Sound-Department-/ . This is the currently deployed main-branch edition, not the unmerged AI-contract-test candidate.
+- Main branch checkpoint SHA: `dd934277782d477789c80df316c3340b2164a810`.
+- User requested that OSD development information be retained and that a usable web link be provided for direct functional checking.
+- Implemented in main/source: four-track audio workflow and mix rendering; preview/download and project save/load paths; QC evidence; local reference-video study and cue export; initial AI Sound Director visual/audio request wiring and AI service health-check UI; AI service deployment blueprint and setup guide.
+- Not confirmed complete: live hosted AI backend, successful real provider analysis, reliable real-media frame/audio analysis end-to-end, advanced audio restoration/refinement, automatic discovery/audition/insertion of suitable BGM/SFX assets, final mixed-audio mux/export into the video, and testing on the user's Galaxy A20.
+- AI frontend/backend contract test candidate PR #54: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/54 . Branch `test/osd-ai-frontend-backend-contract`, latest test commit `6abd8649d6db3a8cb44096d1b5d29bafec4785ff`. Static safety checks and inline JS syntax passed, but Chromium smoke test failed at the wait for the video-analysis button to become enabled (15-second timeout); deployment was skipped. The earlier run had a test-script regex syntax error, since corrected. Do not merge or describe this integration test as passing until the video fixture/readiness issue is fixed and CI passes.
+- Latest observed workflow: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38158791386 (failed; details above). Android build on the same candidate passed, but does not prove installation/runtime behavior on device.
+- Next action: diagnose why the generated WebM fixture does not enable `#analyzeVideoAI` in Chromium; update the smoke test to use a deterministic supported fixture or robustly handle browser metadata readiness; rerun CI. Then proceed to live AI backend setup and the remaining production workflow. Preserve UNKNOWN states; do not infer completion from source code alone.
