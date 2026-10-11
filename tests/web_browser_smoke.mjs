@@ -87,7 +87,7 @@ try {
       assert.equal(request.headers()["authorization"], "Bearer mock-service-token");
       const audioBody = request.postDataJSON();
       assert.ok(audioBody.durationSeconds > 0 && audioBody.durationSeconds <= 90);
-      assert.match(audioBody.audioDataUrl, /^data:audio\\/(wav|mpeg);base64,/);
+      assert.match(audioBody.audioDataUrl, /^data:audio\/(wav|mpeg);base64,/);
       await route.fulfill({ status: 200, headers: cors, body: JSON.stringify({
         requestId: "mock-audio-request-1", status: "completed", model: "mock-audio-model",
         method: "audio-aware-model", durationSeconds: audioBody.durationSeconds,
