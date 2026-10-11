@@ -350,7 +350,13 @@ public class MainActivity extends Activity {
         }
         if (requestCode != PICK_MEDIA) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
-            status.setText("No media selected.");
+            if (selectingMultiTrack) {
+                selectingMultiTrack = false;
+                multiTrackSourceUri = null;
+                status.setText("Multi-track setup cancelled; no render started.");
+            } else {
+                status.setText("No media selected.");
+            }
             return;
         }
         Uri uri = data.getData();
