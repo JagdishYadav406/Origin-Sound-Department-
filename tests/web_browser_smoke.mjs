@@ -78,11 +78,11 @@ try {
     buffer: makePcmWav({ frequency: 440, amplitude: 0.06 })
   });
   await page.waitForFunction(() => (document.querySelector("#state-music")?.textContent || "").startsWith("Ready") || (document.querySelector("#state-music")?.textContent || "").startsWith("Source rejected"), null, { timeout: 20000 });
-  assert.match(await page.locator("#state-music").innerText(), /^Ready\\b/, "music source import failed");
+  assert.match(await page.locator("#state-music").innerText(), /^Ready\b/, "music source import failed");
   await page.locator("#solo-dialogue").click();
   await page.locator("#render").click();
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
-  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\\b/, "solo render should complete");
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "solo render should complete");
   const soloPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
   assert.deepEqual(soloPcm, flatEqPcm, "soloing dialogue should exclude the simultaneously loaded music track");
   await page.locator("#solo-dialogue").click();
