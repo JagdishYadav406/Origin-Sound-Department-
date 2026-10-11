@@ -85,3 +85,12 @@
 - PR #26 was squash-merged to main as commit `39b4e2f83468365466cfdc0447d6328aaef004a7`.
 - Candidate Chromium verification passed on PR run `38120378125`; after merge, main web workflow run `38120477121` completed successfully, including verification and GitHub Pages deployment.
 - EQ is now part of the main web edition. The physical Galaxy A20 still has not been tested; live site accessibility/playback on that device remains an acceptance step.
+
+
+## 2026-10-11 — Pan/balance release merged and deployed
+
+- PR #27 was squash-merged to main as commit `e680d49fc0b3b6c5dede2777a64f453dd2f5b80d`.
+- Web verification run `38120597468` passed the Chromium smoke test, including hard-left mono panning, right-channel silence, WAV integrity checks, and project persistence.
+- Post-merge main workflow run `38120655145` completed successfully; both verification and GitHub Pages deployment passed.
+- The live Pages environment reported by the deployment workflow is `https://jagdishyadav406.github.io/Origin-Sound-Department-/`. This is deployment evidence, not physical-device acceptance. The user's Galaxy A20 and actual download/playback remain untested.
+- Main now includes three-band per-track EQ and attenuation-only pan/balance. Remaining core gaps include dynamics/limiting, integrated LUFS, standards-compliant true-peak, dialogue separation, and direct video muxing.
