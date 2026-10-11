@@ -133,6 +133,9 @@ try {
   assert.equal(panCheck.rightPeak, 0, "hard-left mono pan must leave the right channel silent");
 
   await page.locator("#solo-dialogue").click();
+  await page.locator("#gateThreshold-dialogue").fill("-48");
+  await page.locator("#gateReduction-dialogue").fill("12");
+  assert.equal(await page.locator("#gateReductionout-dialogue").innerText(), "12 dB");
   await page.locator("#extraClipTrack").selectOption("dialogue");
   await page.locator("#extraClipOffset").fill("0.2");
   await page.locator("#extraClipGain").fill("-6");
@@ -161,7 +164,7 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 10);
+  assert.equal(project.projectVersion, 11);
   assert.equal(project.timelineClips?.length, 0, "project should record an empty clip manifest when no extra clips are loaded");
   assert.equal(project.master.duckDepthDb, 0, 'dialogue ducking must default to off');
   assert.equal(project.master.duckThresholdDb, -30, 'project must preserve the ducking threshold');
