@@ -7,6 +7,7 @@ Origin Sound Department is a self-contained browser-based soundtrack workspace. 
 - Four source tracks: Dialogue, Music, SFX and Ambience.
 - Local audio import, browser decoding and SHA-256 source fingerprints where supported.
 - Track gain, mute/solo, three-band peaking EQ, high-pass filtering, linked-stereo compression, pan/balance, start offset, trim and fades.
+- Optional per-track low-level noise gate with threshold and attenuation controls, off by default. This can reduce quieter material between louder passages; it is not spectral denoising, cannot reliably separate speech from noise, and may attenuate quiet speech or effects if set too aggressively.
 - Dialogue starting presets (Natural Voice, Reduce Low Rumble, Clarity, More Dynamic Control, Reset) that set editable parameters; they are not noise removal or quality guarantees.
 - Dialogue-aware music ducking using an envelope follower; it is not speech recognition.
 - Master-bus gain trim and a pre-render full-scale/clipping gate. There is no automatic limiter or loudness normalization.
@@ -23,7 +24,7 @@ Origin Sound Department is a self-contained browser-based soundtrack workspace. 
 - Sound-library matching is based on cue text, filenames and tags—not audio embeddings, guaranteed creative fit, licensing validation or copyright clearance.
 - The mixer does not automatically apply AI suggestions. Review and audition every candidate.
 - The renderer does not currently mux the final soundtrack into the original video. Export the WAV and assemble it with a video editor.
-- No dedicated noise-reduction, dereverberation, source separation, clipping repair, Foley synthesis, LUFS integrated loudness measurement, or standards-compliant true-peak meter is claimed.
+- No spectral noise reduction, dereverberation, source separation, clipping repair, Foley synthesis, LUFS integrated loudness measurement, or standards-compliant true-peak meter is claimed. The low-level gate is a simple dynamics tool, not a replacement for spectral denoising.
 - Stereo WAV export, browser downloads and video capture depend on browser capabilities and available memory. Download completion and playback on the user's device are not independently verified.
 - The web static/Chromium test suite is not a substitute for testing on the Samsung Galaxy A20 or another target device.
 
