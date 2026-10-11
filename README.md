@@ -21,7 +21,7 @@ The source video supplies the picture; selected audio stems replace its soundtra
 
 ## Multi-track beta constraints (important)
 - Tracks must be mutually compatible and their durations must match the source timeline within 0.15 seconds.
-- This Android workflow currently has no timeline offsets, trims, fades, solo/mute, or per-role processing.
+- Role names are currently labels for identification only; they do not trigger role-specific processing. This Android workflow currently has no timeline offsets, trims, fades, solo/mute, or per-role processing.
 - Automatic music ducking is not implemented; the engine rejects non-zero ducking requests instead of silently ignoring them.
 - Track gains are limited to -24 dB through +12 dB. The intermediate mix is floating-point so it does not quantize/clamp to PCM16 before the later limiter stage.
 - If compatibility, measurements, integrity evidence, or QC are missing or fail, delivery is blocked.
