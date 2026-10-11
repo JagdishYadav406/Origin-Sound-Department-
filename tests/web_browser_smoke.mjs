@@ -83,6 +83,25 @@ try {
       }) });
       return;
     }
+    if (request.method() === "POST" && url.pathname === "/v1/analyze-audio") {
+      assert.equal(request.headers()["authorization"], "Bearer mock-service-token");
+      const audioBody = request.postDataJSON();
+      assert.ok(audioBody.durationSeconds > 0 && audioBody.durationSeconds <= 90);
+      assert.match(audioBody.audioDataUrl, /^data:audio\\/(wav|mpeg);base64,/);
+      await route.fulfill({ status: 200, headers: cors, body: JSON.stringify({
+        requestId: "mock-audio-request-1", status: "completed", model: "mock-audio-model",
+        method: "audio-aware-model", durationSeconds: audioBody.durationSeconds,
+        coverage: "audio input analyzed; timestamps are model estimates and must be reviewed",
+        analysis: {
+          ...mockAiAnalysis,
+          summary: "Mock audio integration: speech with a restrained musical bed.",
+          scenes: [{ ...mockAiAnalysis.scenes[0], description: "Speech over a continuous tonal bed.", visible_evidence: "AUDIBLE evidence: speech and a tonal bed are present." }],
+          cues: [{ ...mockAiAnalysis.cues[0], description: "Keep background music below the narration.", rationale: "Mock audio response verifies the audio-aware UI path." }],
+          limitations: ["Mock response only; this is not a real AI model result."]
+        }
+      }) });
+      return;
+    }
     if (request.method() === "POST" && url.pathname === "/v1/analyze") {
       assert.equal(request.headers()["authorization"], "Bearer mock-service-token");
       observedVisualRequest = request.postDataJSON();
@@ -161,6 +180,18 @@ try {
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /restrained musical bed/);
   assert.equal(await page.locator("#exportAIPlanJSON").isEnabled(), true);
   assert.equal(await page.locator("#exportAICuesCSV").isEnabled(), true);
+
+  // Verify the separate, explicitly consented audio-aware request path as well.
+  await page.locator("#aiAudioFile").setInputFiles({
+    name: "osd-ai-audio-contract-smoke.wav",
+    mimeType: "audio/wav",
+    buffer: makePcmWav({ seconds: 0.5, frequency: 220, amplitude: 0.04 })
+  });
+  await page.locator("#aiAudioConsent").check();
+  await page.locator("#analyzeAudioAI").click();
+  await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Audio analysis complete"), null, { timeout: 15000 });
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /Mock audio integration: speech/);
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /Keep background music below the narration/);
   await page.unroute("https://mock-osd-ai.example/**");
 
 
@@ -338,6 +369,7 @@ try {
     status: "PASS",
     aiConnectionValidation: "PASS",
     aiVisualFrontendServiceContract: "PASS",
+    aiAudioFrontendServiceContract: "PASS",
     sourceImport: "PASS",
     preflightAndPostDecodeMemoryChecks: "PASS",
     stereoWavRenderAndSerializedPcmQc: "PASS",
