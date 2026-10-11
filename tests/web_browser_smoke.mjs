@@ -80,6 +80,21 @@ try {
   assert.notDeepEqual(eqPcm, flatEqPcm, "enabling bass EQ must alter rendered PCM");
   assert.match(await page.locator("#log").innerText(), /pcm_scan=PASS/);
 
+  assert.equal(await page.locator("#pan-dialogue").count(), 1, "dialogue pan control should exist");
+  await page.locator("#pan-dialogue").evaluate(el => { el.value = "-100"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.locator("#render").click();
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "pan render failed");
+  const panCheck = await page.evaluate(async () => {
+    const bytes = await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer();
+    const view = new DataView(bytes);
+    let rightPeak = 0;
+    for (let i = 46; i < bytes.byteLength; i += 4) rightPeak = Math.max(rightPeak, Math.abs(view.getInt16(i, true)));
+    return { rightPeak, byteLength: bytes.byteLength };
+  });
+  assert.ok(panCheck.byteLength > 44, "panned WAV should contain PCM frames");
+  assert.equal(panCheck.rightPeak, 0, "hard-left mono pan must leave the right channel silent");
+
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#saveProject").click();
   const download = await downloadPromise;
@@ -87,8 +102,9 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 4);
+  assert.equal(project.projectVersion, 5);
   assert.equal(project.settings.dialogue.eqbass, 6, "project must preserve EQ settings");
+  assert.equal(project.settings.dialogue.pan, -100, "project must preserve pan settings");
   assert.ok(project.sources?.dialogue?.sha256, "project should record the source fingerprint");
   assert.equal(project.sources?.dialogue?.decoded, true);
   assert.ok(!Object.hasOwn(project, "audioData"), "project must not silently embed source audio");
