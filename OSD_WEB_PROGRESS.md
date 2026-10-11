@@ -105,3 +105,12 @@
 - Added Chromium smoke coverage for mute-to-digital-silence, solo isolation with a second loaded track, and project-state persistence.
 - Candidate commits: app `4dc186b53dadf6fed17250e9e949ac449c90304a`; browser test `3a7615df11eb54405d585f11d39cc45084392b91`; README update `1b310bf3f509a5e82ef13eb50b46e7e7615c38ff`.
 - Status at checkpoint: candidate changes are not merged. CI must pass before release. Phone compatibility remains unverified.
+
+
+## 2026-10-11 — AI Sound Director deployment blueprint prepared
+
+- Added `render.yaml` for a separate Node.js 22 service using the existing `ai-service/server.mjs`, the built-in fake-provider tests, and `/v1/health` health checks. No API key or service token is embedded in source.
+- Added `docs/DEPLOY_AI_SOUND_DIRECTOR.md` with hosting setup, secret configuration, frontend connection, separate consent for sampled video frames and audio, known cold-start/cost/security limits, and acceptance criteria.
+- Linked the deployment guide from `ai-service/README.md`.
+- This is a deployable configuration candidate, not a live deployment. Hosting account authorization, the provider API key, a random service token, real provider/model access, and a real consented analysis are still required. Do not claim AI is operational until those steps and checks pass.
+- Validation next: run the AI service tests in CI, review the Blueprint YAML against provider conventions, then merge only if checks pass. After merge, the user must connect/import the Blueprint in the hosting provider and set secrets; this assistant has not provisioned an external hosting service.
