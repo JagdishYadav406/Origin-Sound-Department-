@@ -37,6 +37,8 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("No LUFS loudness measurement", self.inline_script)
         self.assertIn("No standards-compliant true-peak measurement", self.inline_script)
         self.assertIn("No direct video muxing", self.inline_script)
+        self.assertIn("Three-band EQ is implemented.", self.html)
+        self.assertNotIn("Sources with more than two channels are rejected rather than silently remapped. EQ, compression", self.html)
         self.assertIn("OSD-WEB-QC-EVIDENCE", self.inline_script)
 
     def test_project_recovery_controls_and_local_media_policy_exist(self):
