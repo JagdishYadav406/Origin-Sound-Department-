@@ -11,7 +11,8 @@ The web editor can run without AI. To enable visual and audio-aware cue proposal
    - `OSD_SERVICE_TOKEN`: a long, random private token you generate and keep safe. Do not commit it to GitHub or share it.
 4. Wait for the deploy to finish. Open `https://YOUR-SERVICE.onrender.com/v1/health`. A healthy configured service reports `status: ok` and `configured: true`. It does not return secret values. If `configured` is false, recheck the two server secrets.
 5. In OSD, open **Sound Director**, enter the service base URL (the URL without `/v1/health`) and the same service token, and grant the relevant consent before starting an analysis.
-6. The first visual analysis sends up to eight sampled frames; audio analysis separately sends the selected WAV/MP3 audio (up to 90 seconds and 4.5 MB) after separate consent. Review cue times and audition assets yourself.
+6. In OSD, click **Test AI connection**. This checks `/v1/health`, shows whether server secrets are configured, and reports the configured model names. It does not spend model credits or prove the key has access.
+7. The first visual analysis sends up to eight sampled frames; audio analysis separately sends the selected WAV/MP3 audio (up to 90 seconds and 4.5 MB) after separate consent. Review cue times and audition assets yourself.
 
 ## Important security and cost notes
 
