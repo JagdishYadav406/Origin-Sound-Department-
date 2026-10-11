@@ -140,7 +140,10 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 7);
+  assert.equal(project.projectVersion, 8);
+  assert.equal(project.settings.dialogue.hpf, 80, "project must preserve the dialogue high-pass filter");
+  assert.equal(project.settings.dialogue.compthresh, -18, "project must preserve compressor threshold");
+  assert.equal(project.settings.dialogue.compratio, 3, "project must preserve compressor ratio");
   assert.equal(project.settings.dialogue.eqbass, 6, "project must preserve EQ settings");
   assert.equal(project.settings.dialogue.pan, -100, "project must preserve pan settings");
   assert.equal(project.settings.dialogue.solo, true, "project must preserve solo state");
