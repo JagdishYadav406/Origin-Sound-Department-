@@ -60,6 +60,12 @@
 - The EQ runs on temporary render-time sample copies, leaving the imported AudioBuffers untouched. The render working-memory estimate now reserves an additional decoded-size copy for the EQ processing path.
 - Project schema version advanced to 4; loading versions 1–3 remains supported and defaults the new EQ bands to 0 dB. EQ settings are included in the evidence report. Reset now returns all three bands to 0 dB.
 - Extended the Chromium smoke test to check the controls, render the same low-frequency test source with bass EQ enabled, assert that serialized PCM changes, and confirm EQ values persist in saved project JSON.
-- Current branch head: `f7a609da8d2f0d2d320e6ae0a9302fb43be40a28` (latest change is the browser-test event dispatch fix).
-- Verification status: changes have been authored but GitHub Actions has not yet been observed for this branch. Do not merge or call this feature verified until the browser test and all required CI checks pass. Physical Galaxy A20 compatibility remains untested.
+- Candidate source/test commit `98e3125d90df3c81c778aa2af08a99e8d84cf8de` passed GitHub Actions web verification run `38120378125`: static safety tests, inline JavaScript syntax check, Chromium source import, memory preflight/post-decode checks, stereo WAV render and serialized PCM QC, EQ-driven PCM change, and project JSON persistence all passed. The first run at `10dd25...` exposed an over-escaped test assertion; that test was corrected and the follow-up passed.
+- At the time of this log entry, the candidate PR remains open and unmerged. The PR's deploy job is skipped as expected; a successful post-merge main workflow is still required to confirm deployment. Physical Galaxy A20 compatibility remains untested.
 - Limitations: this is three fixed-frequency peaking bands, not a full parametric equalizer; no EQ curve graph, compressor, limiter, LUFS, standards-compliant true-peak, or video muxing has been added.
+
+
+## 2026-10-11 — EQ candidate browser test passed
+
+- GitHub Actions web verification run `38120378125` completed successfully for candidate commit `98e3125d90df3c81c778aa2af08a99e8d84cf8de`. The Chromium smoke test demonstrated that raising the dialogue bass band changes rendered PCM while WAV integrity checks still pass, and the saved project retains the EQ value.
+- Pull request #26: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/26. Not merged at this checkpoint; deployment to the live Pages site and physical phone acceptance remain separate gates.
