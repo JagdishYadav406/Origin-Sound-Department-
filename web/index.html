@@ -367,7 +367,7 @@ function renderAIResult(result,mode="visual"){
  $('clearAIResults').disabled=false;$('exportAIPlanJSON').disabled=false;$('exportAICuesCSV').disabled=!analysis.cues.length;
 }
 let aiAudioAnalysisToken=0;
-$('aiAudioFile').addEventListener('change',()=>{const f=$('aiAudioFile').files?.[0];aiAudioLastResult=null;aiCombinedLastResult=null;if(aiLastMode==='audio'||aiLastMode==='combined'){aiLastResult=null;aiLastMode='';$('aiAnalysisResults').replaceChildren()}$('aiTimelineAligned').checked=false;updateCombineAIButton();$('aiAudioConsent').checked=false;$('analyzeAudioAI').disabled=true;$('audioAIStatus').textContent=f?'Selected audio will be sent only after you press Analyze and consent remains checked.':'Choose a WAV or MP3 file.'});
+$('aiAudioFile').addEventListener('change',()=>{const f=$('aiAudioFile').files?.[0];aiAudioLastResult=null;aiCombinedLastResult=null;if(aiLastMode==='audio'||aiLastMode==='combined'){aiLastResult=null;aiLastMode='';$('aiAnalysisResults').replaceChildren();$('exportAIPlanJSON').disabled=true;$('exportAICuesCSV').disabled=true}$('aiTimelineAligned').checked=false;updateCombineAIButton();$('aiAudioConsent').checked=false;$('analyzeAudioAI').disabled=true;$('audioAIStatus').textContent=f?'Selected audio will be sent only after you press Analyze and consent remains checked.':'Choose a WAV or MP3 file.'});
 $('aiAudioConsent').addEventListener('change',()=>{$('analyzeAudioAI').disabled=!$('aiAudioFile').files?.[0]||!$('aiAudioConsent').checked||aiAnalyzing});
 $('analyzeAudioAI').addEventListener('click',async()=>{
  const file=$('aiAudioFile').files?.[0];if(!file||!$('aiAudioConsent').checked){$('audioAIStatus').textContent='Choose a WAV or MP3 file and explicitly consent before analysis.';return}
@@ -375,7 +375,7 @@ $('analyzeAudioAI').addEventListener('click',async()=>{
  if(file.size>4_500_000){$('audioAIStatus').textContent='File exceeds the 4.5 MB browser upload limit. Choose a smaller or shorter WAV/MP3 file.';return}
  const base=$('aiServiceUrl').value.trim().replace(/\/+$/,''),serviceToken=$('aiServiceToken').value.trim();
  try{const u=new URL(base);if(!(u.protocol==='https:'||u.hostname==='localhost'||u.hostname==='127.0.0.1'))throw new Error('Use HTTPS for a remote service.')}catch(err){$('audioAIStatus').textContent=`AI service URL invalid: ${err.message}`;return}
- const token=++aiAnalysisToken;aiAudioAnalysisToken=token;aiAnalyzing=true;aiLastResult=null;aiCombinedLastResult=null;$('analyzeAudioAI').disabled=true;updateCombineAIButton();$('analyzeVideoAI').disabled=true;$('cancelVideoAI').disabled=false;$('clearAIResults').disabled=true;$('aiAnalysisResults').replaceChildren();
+ const token=++aiAnalysisToken;aiAudioAnalysisToken=token;aiAnalyzing=true;aiLastResult=null;aiCombinedLastResult=null;$('analyzeAudioAI').disabled=true;updateCombineAIButton();$('analyzeVideoAI').disabled=true;$('cancelVideoAI').disabled=false;$('clearAIResults').disabled=true;$('exportAIPlanJSON').disabled=true;$('exportAICuesCSV').disabled=true;$('aiAnalysisResults').replaceChildren();
  let objectUrl='',audioMeta;
  try{
   objectUrl=URL.createObjectURL(file);
