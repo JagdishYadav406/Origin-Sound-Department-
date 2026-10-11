@@ -149,7 +149,7 @@ try {
     buffer: Buffer.from(JSON.stringify(project))
   });
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Project settings loaded") || (document.querySelector("#message")?.textContent || "").startsWith("Project load rejected"), null, { timeout: 10000 });
-  assert.match(await page.locator("#message").innerText(), /^Project settings loaded\\b/, "saved project should load successfully");
+  assert.ok((await page.locator("#message").innerText()).startsWith("Project settings loaded"), "saved project should load successfully");
   assert.equal(await page.locator("#eqbass-dialogue").inputValue(), "6", "loading project should restore EQ");
   assert.equal(await page.locator("#pan-dialogue").inputValue(), "-100", "loading project should restore pan");
   assert.equal(await page.locator("#solo-dialogue").getAttribute("aria-pressed"), "true", "loading project should restore solo state");
