@@ -64,6 +64,16 @@ try {
   const renderMessage = await page.locator("#message").innerText();
   assert.match(renderMessage, /^Stereo WAV created\b/, "render did not succeed: " + renderMessage);
   assert.equal(await page.locator("#mixPreview").isVisible(), true);
+  assert.match(await page.locator("#mixPreviewStatus").innerText(), /CURRENT$/, "successful render should be marked current");
+  await page.locator("#masterGain").evaluate(el => {
+    el.value = String(Number(el.value) - 1);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  assert.match(await page.locator("#mixPreviewStatus").innerText(), /OUTDATED$/, "changing master gain must mark prior preview outdated");
+  assert.match(await page.locator("#mixPreviewNotice").innerText(), /previous completed render/i, "outdated preview must explain it is the previous render");
+  await page.locator("#render").click();
+  await page.waitForFunction(() => document.querySelector("#mixPreviewStatus")?.textContent?.endsWith("CURRENT"), null, { timeout: 20000 });
+  assert.match(await page.locator("#qcMetric").innerText(), /PCM STRUCTURE PASS/, "rerender should complete validation before preview is current");
   assert.equal(await page.locator("#mixPreviewStatus").innerText(), "Latest completed render — CURRENT");
   assert.equal(await page.locator("#mixPreview").getAttribute("class"), "");
   assert.match(await page.locator("#log").innerText(), /header_check=PASS pcm_scan=PASS frame_count_check=PASS blob_size_check=PASS/);
