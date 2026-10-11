@@ -43,7 +43,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
         self.assertIn("Audio files are not embedded", self.inline_script)
-        self.assertIn("historical evidence", self.inline_script.lower())
+        self.assertIn("has not been re-verified in this session", self.inline_script)
 
     def test_mix_render_has_preallocation_clipping_gate_and_serialized_pcm_checks(self):
         self.assertIn("PRE_RENDER_QC_BLOCKED", self.inline_script)
