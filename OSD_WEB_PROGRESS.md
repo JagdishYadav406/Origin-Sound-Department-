@@ -51,3 +51,21 @@
 - The PR's GitHub Actions web verification run `38118702012` completed successfully, including Chromium installation and the runtime smoke test for generated local WAV import, memory preflight/post-decode checks, stereo WAV render, serialized PCM/WAV integrity, local Blob preview, and project JSON download/source fingerprint.
 - This is automated Chromium CI evidence only. It is not a physical Samsung Galaxy A20 test and does not establish that the user can access the public Pages URL from their phone.
 - The post-merge main deployment run `38118741123` subsequently completed successfully: both verification and deployment jobs passed, including GitHub Pages configuration, artifact upload, and deploy action. The published URL and rendering on the user's phone still have not been independently verified from this session.
+
+
+## 2026-10-11 — Three-band per-track EQ implementation candidate
+
+- Created isolated branch `feature/per-track-three-band-eq` from `main`; the default branch remains unchanged while this candidate is tested.
+- Added independent Bass (120 Hz), Mid (1 kHz), and Treble (8 kHz) peaking-EQ gain controls for Dialogue, Music, SFX, and Ambience, each adjustable from -12 dB to +12 dB in 0.5 dB steps. All default to 0 dB; originals are not modified.
+- The EQ runs on temporary render-time sample copies, leaving the imported AudioBuffers untouched. The render working-memory estimate now reserves an additional decoded-size copy for the EQ processing path.
+- Project schema version advanced to 4; loading versions 1–3 remains supported and defaults the new EQ bands to 0 dB. EQ settings are included in the evidence report. Reset now returns all three bands to 0 dB.
+- Extended the Chromium smoke test to check the controls, render the same low-frequency test source with bass EQ enabled, assert that serialized PCM changes, and confirm EQ values persist in saved project JSON.
+- Candidate source/test commit `98e3125d90df3c81c778aa2af08a99e8d84cf8de` passed GitHub Actions web verification run `38120378125`: static safety tests, inline JavaScript syntax check, Chromium source import, memory preflight/post-decode checks, stereo WAV render and serialized PCM QC, EQ-driven PCM change, and project JSON persistence all passed. The first run at `10dd25...` exposed an over-escaped test assertion; that test was corrected and the follow-up passed.
+- At the time of this log entry, the candidate PR remains open and unmerged. The PR's deploy job is skipped as expected; a successful post-merge main workflow is still required to confirm deployment. Physical Galaxy A20 compatibility remains untested.
+- Limitations: this is three fixed-frequency peaking bands, not a full parametric equalizer; no EQ curve graph, compressor, limiter, LUFS, standards-compliant true-peak, or video muxing has been added.
+
+
+## 2026-10-11 — EQ candidate browser test passed
+
+- GitHub Actions web verification run `38120378125` completed successfully for candidate commit `98e3125d90df3c81c778aa2af08a99e8d84cf8de`. The Chromium smoke test demonstrated that raising the dialogue bass band changes rendered PCM while WAV integrity checks still pass, and the saved project retains the EQ value.
+- Pull request #26: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/26. Not merged at this checkpoint; deployment to the live Pages site and physical phone acceptance remain separate gates.

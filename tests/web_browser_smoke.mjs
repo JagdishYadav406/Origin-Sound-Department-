@@ -9,7 +9,7 @@ const context = await browser.newContext({ acceptDownloads: true });
 const page = await context.newPage();
 page.on("pageerror", error => errors.push(error.message));
 
-function makePcmWav({ seconds = 0.5, sampleRate = 44100, frequency = 440, amplitude = 0.12 } = {}) {
+function makePcmWav({ seconds = 0.5, sampleRate = 44100, frequency = 120, amplitude = 0.12 } = {}) {
   const frames = Math.floor(seconds * sampleRate);
   const dataBytes = frames * 2;
   const out = Buffer.alloc(44 + dataBytes);
@@ -68,6 +68,17 @@ try {
 
   const audioSrc = await page.locator("#mixPlayer").getAttribute("src");
   assert.ok(audioSrc?.startsWith("blob:"), "rendered preview must reference a local Blob URL");
+  const flatEqPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
+  assert.equal(await page.locator("#eqbass-dialogue").count(), 1, "dialogue bass EQ control should exist");
+  assert.equal(await page.locator("#eqmid-dialogue").count(), 1, "dialogue mid EQ control should exist");
+  assert.equal(await page.locator("#eqtreble-dialogue").count(), 1, "dialogue treble EQ control should exist");
+  await page.locator("#eqbass-dialogue").evaluate(el => { el.value = "6"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.locator("#render").click();
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "EQ render failed");
+  const eqPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
+  assert.notDeepEqual(eqPcm, flatEqPcm, "enabling bass EQ must alter rendered PCM");
+  assert.match(await page.locator("#log").innerText(), /pcm_scan=PASS/);
 
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#saveProject").click();
@@ -76,6 +87,8 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
+  assert.equal(project.projectVersion, 4);
+  assert.equal(project.settings.dialogue.eqbass, 6, "project must preserve EQ settings");
   assert.ok(project.sources?.dialogue?.sha256, "project should record the source fingerprint");
   assert.equal(project.sources?.dialogue?.decoded, true);
   assert.ok(!Object.hasOwn(project, "audioData"), "project must not silently embed source audio");
