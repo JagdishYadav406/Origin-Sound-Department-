@@ -72,7 +72,7 @@ try {
   assert.equal(await page.locator("#eqbass-dialogue").count(), 1, "dialogue bass EQ control should exist");
   assert.equal(await page.locator("#eqmid-dialogue").count(), 1, "dialogue mid EQ control should exist");
   assert.equal(await page.locator("#eqtreble-dialogue").count(), 1, "dialogue treble EQ control should exist");
-  await page.locator("#eqbass-dialogue").fill("6");
+  await page.locator("#eqbass-dialogue").evaluate(el => { el.value = "6"; el.dispatchEvent(new Event("input", { bubbles: true })); });
   await page.locator("#render").click();
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
   assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\\b/, "EQ render failed");
