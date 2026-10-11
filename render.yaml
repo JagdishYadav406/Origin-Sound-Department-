@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: osd-ai-sound-director
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: node --check ai-service/server.mjs && node --test ai-service/server.test.mjs
+    startCommand: node ai-service/server.mjs
+    healthCheckPath: /v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OSD_SERVICE_TOKEN
+        sync: false
+      - key: OSD_ALLOWED_ORIGINS
+        value: "https://jagdishyadav406.github.io,http://localhost:4173,http://127.0.0.1:4173"
+      - key: OSD_AI_MODEL
+        value: "gpt-4.1-mini"
+      - key: OSD_AUDIO_MODEL
+        value: "gpt-audio-1.5"

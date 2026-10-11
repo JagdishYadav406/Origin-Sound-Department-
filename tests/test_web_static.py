@@ -205,6 +205,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
             self.assertIn(f'id="gateThreshold-{track}"', self.html)
             self.assertIn(f'id="gateReduction-{track}"', self.html)
         self.assertIn("obj.projectVersion<11&&k==='gateReduction'?0:undefined", self.inline_script)
+    def test_ai_service_connection_test_is_explicit_and_bounded(self):
+        self.assertIn('id="testAIConnection"', self.html)
+        self.assertIn('id="aiConnectionStatus"', self.html)
+        self.assertIn("$('testAIConnection').addEventListener('click'", self.inline_script)
+        self.assertIn("'/v1/health'", self.inline_script)
+        self.assertIn("health check timed out after 8 seconds", self.inline_script)
+        self.assertIn("Service reachable, but server secrets are not configured", self.inline_script)
+        self.assertIn("A real provider analysis is still required to verify model access", self.inline_script)
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
