@@ -44,3 +44,11 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
   - Timeline regression tests: `c14d316ad07d871e513152d3a0540aad04956380`
   - README discoverability: `8495be14af1dc742bb641f04fa82ad4c2c8c11a1`
 - Status at log entry: source changes committed to feature branch; CI, APK artifact integrity, physical installation, actual multi-file selection, rendering, playback/export, and Galaxy A20 performance are still pending. Do not merge or describe this as verified until CI and runtime acceptance evidence are reviewed.
+
+
+## 2026-10-11 — Follow-up guard and role-label clarification
+
+- Fixed the Android source-picker cancellation path to reset the pending multi-track state, preventing a later ordinary media selection from unexpectedly continuing a cancelled multi-track setup.
+- Clarified in README that Dialogue/Music/SFX/Ambience are currently role labels only and do not yet trigger role-specific processing.
+- Follow-up commits: Android cancellation fix `1f7e4ed44e8e10dbb53132e3f292e2596529933e`; role-label clarification `2fafbb04c21495dc8024a61bad784ba078a08a54`.
+- CI for the earlier candidate had passed Python regression tests and was still building the release APK when last checked. That run does not include these two follow-up commits; the updated PR head needs its own CI result.
