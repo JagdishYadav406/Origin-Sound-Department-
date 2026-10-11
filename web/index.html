@@ -365,9 +365,10 @@ $('analyzeAudioAI').addEventListener('click',async()=>{
   if(audioMeta>90)throw new Error('Audio exceeds the 90-second AI analysis limit.');
   $('audioAIStatus').textContent='Reading selected audio for the consented AI request…';
   const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Could not read the selected file.'));reader.onload=()=>resolve(String(reader.result||''));reader.readAsDataURL(file)});
+  const normalizedAudioDataUrl=dataUrl.replace(/^data:audio\/[^;]+;base64,/i,file.name.toLowerCase().endsWith('.mp3')?'data:audio/mpeg;base64,':'data:audio/wav;base64,');
   if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
   aiAnalysisController=new AbortController();aiAnalysisTimer=setTimeout(()=>aiAnalysisController?.abort(),65000);
-  const response=await fetch(`${base}/v1/analyze-audio`,{method:'POST',headers:{'content-type':'application/json','authorization':`Bearer ${serviceToken}`},body:JSON.stringify({durationSeconds:audioMeta,audioDataUrl:dataUrl,intent:$('videoCueNote').value.trim().slice(0,1200)}),signal:aiAnalysisController.signal});
+  const response=await fetch(`${base}/v1/analyze-audio`,{method:'POST',headers:{'content-type':'application/json','authorization':`Bearer ${serviceToken}`},body:JSON.stringify({durationSeconds:audioMeta,audioDataUrl:normalizedAudioDataUrl,intent:$('videoCueNote').value.trim().slice(0,1200)}),signal:aiAnalysisController.signal});
   let data;try{data=await response.json()}catch(_){throw new Error('AI service returned a non-JSON response.')}
   if(!response.ok)throw new Error(data.error||`AI audio request failed (${response.status}).`);
   if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
