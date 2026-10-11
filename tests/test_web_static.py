@@ -40,6 +40,9 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Three-band EQ is implemented.", self.html)
         self.assertNotIn("Sources with more than two channels are rejected rather than silently remapped. EQ, compression", self.html)
         self.assertIn("OSD-WEB-QC-EVIDENCE", self.inline_script)
+        self.assertIn("Previous render — OUTDATED", self.html)
+        self.assertIn("Latest completed render — CURRENT", self.inline_script)
+        self.assertIn("markMixPreviewStale", self.inline_script)
 
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
@@ -53,6 +56,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Independent WAV header/format validation failed", self.inline_script)
         self.assertIn("serialized_pcm_peak_dbfs", self.inline_script)
         self.assertIn("blob_size_check=PASS", self.inline_script)
+
+    def test_old_mix_preview_is_marked_outdated_after_edits(self):
+        self.assertIn('id="mixPreviewStatus"', self.html)
+        self.assertIn('id="mixPreviewNotice"', self.html)
+        self.assertIn("function markMixPreviewStale(reason)", self.inline_script)
+        self.assertIn("Previous render — OUTDATED", self.inline_script)
+        self.assertIn("Latest completed render — CURRENT", self.inline_script)
+        self.assertIn("Render again before exporting or using it as the current mix.", self.inline_script)
 
     def test_mobile_layout_and_keyboard_focus_rules_remain_present(self):
         self.assertIn("@media(max-width:560px)", self.html)
