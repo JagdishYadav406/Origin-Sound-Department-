@@ -60,7 +60,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("VIDEO_AUDIO_CAPTURE_PREFLIGHT", self.inline_script)
         self.assertIn("MediaRecorder.isTypeSupported", self.inline_script)
         self.assertIn("duration>600", self.inline_script)
-        self.assertIn("normal import pipeline", self.html.lower())
+        self.assertIn("normal duration, memory, decode and integrity checks", self.html)
 
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
