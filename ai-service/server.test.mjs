@@ -117,7 +117,7 @@ test("rejects out-of-range timestamps from the provider", async () => {
       headers: { authorization: "Bearer test-service-token", "content-type": "application/json" },
       body: JSON.stringify(payload())
     });
-    assert.equal(response.status, 500);
+    assert.equal(response.status, 502);
     const data = await response.json();
     assert.equal(data.status, "failed");
     assert.match(data.error, /out-of-range/);
