@@ -2,10 +2,10 @@ name: OSD Web Edition — verify and deploy
 on:
   pull_request:
     branches: [main]
-    paths: ["web/**", "tests/test_web_static.py", ".github/workflows/osd-web-pages.yml"]
+    paths: ["web/**", "tests/test_web_static.py", "tests/web_browser_smoke.mjs", ".github/workflows/osd-web-pages.yml"]
   push:
     branches: [main]
-    paths: ["web/**", "tests/test_web_static.py", ".github/workflows/osd-web-pages.yml"]
+    paths: ["web/**", "tests/test_web_static.py", "tests/web_browser_smoke.mjs", ".github/workflows/osd-web-pages.yml"]
   workflow_dispatch:
 
 permissions:

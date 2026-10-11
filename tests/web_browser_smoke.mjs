@@ -138,6 +138,25 @@ try {
   assert.equal(project.sources?.dialogue?.decoded, true);
   assert.ok(!Object.hasOwn(project, "audioData"), "project must not silently embed source audio");
 
+  // Load the saved project back through the real file input and verify settings restore.
+  await page.locator("#eqbass-dialogue").evaluate(el => { el.value = "0"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.locator("#pan-dialogue").evaluate(el => { el.value = "0"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+  await page.locator("#solo-dialogue").click();
+  await page.locator("#mute-music").click();
+  await page.locator("#loadProjectFile").setInputFiles({
+    name: "osd-smoke-project.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(project))
+  });
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Project settings loaded") || (document.querySelector("#message")?.textContent || "").startsWith("Project load rejected"), null, { timeout: 10000 });
+  assert.ok((await page.locator("#message").innerText()).startsWith("Project settings loaded"), "saved project should load successfully");
+  assert.equal(await page.locator("#eqbass-dialogue").inputValue(), "6", "loading project should restore EQ");
+  assert.equal(await page.locator("#pan-dialogue").inputValue(), "-100", "loading project should restore pan");
+  assert.equal(await page.locator("#solo-dialogue").getAttribute("aria-pressed"), "true", "loading project should restore solo state");
+  assert.equal(await page.locator("#mute-music").getAttribute("aria-pressed"), "true", "loading project should restore mute state");
+  assert.match(await page.locator("#projectNotice").innerText(), /Audio was not embedded/, "load must clearly require relinking source audio");
+
+
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({
     status: "PASS",
@@ -146,6 +165,7 @@ try {
     stereoWavRenderAndSerializedPcmQc: "PASS",
     localPreview: "PASS",
     trackMuteSoloRenderAndProjectPersistence: "PASS",
+    projectLoadRoundTrip: "PASS",
     projectJsonDownloadAndFingerprint: "PASS",
     uncaughtPageErrors: errors.length
   }, null, 2));
