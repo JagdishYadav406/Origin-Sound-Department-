@@ -75,6 +75,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("No sound is downloaded or automatically mixed", self.html)
         self.assertIn("aiAnalysisController.abort()", self.inline_script)
 
+    def test_dialogue_refinement_presets_are_reversible_and_disclose_limits(self):
+        self.assertIn('id="dialogueRefinement"', self.html)
+        for preset in ("natural", "rumble", "clarity", "dynamics", "neutral"):
+            self.assertIn(f'data-dialogue-preset="{preset}"', self.html)
+        self.assertIn("DIALOGUE_REFINEMENT_PRESET_APPLIED", self.inline_script)
+        self.assertIn("does not remove noise, repair clipping, or guarantee intelligibility", self.inline_script)
+        self.assertIn("if(rendering)", self.inline_script)
+
     def test_sound_director_can_combine_time_aligned_visual_and_audio_cue_proposals(self):
         self.assertIn('id="combineAIResults"', self.html)
         self.assertIn('id="aiTimelineAligned"', self.html)
