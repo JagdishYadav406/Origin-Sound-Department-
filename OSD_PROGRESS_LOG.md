@@ -25,3 +25,22 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
 - Tested artifact merge commit: 75ab6ff26621f6509d0ae034c6534ede13d84db7 (PR merge ref). APK size: 109,381,736 bytes. APK SHA-256: 0dd0211f4b7ddc79b263c1a4e4af786357a7e114f5a9929db7ba14dd9499103e. Source archive SHA-256: 2a0e2bd986f7f3a048733ce3090ca2f614c3e1651229f9ee6de080360e62ad6a.
 - Independently downloaded the artifact ZIP and extracted the APK in the current working session; ZIP integrity and APK SHA-256 match were verified locally. APK contains DEX, AndroidManifest, Chaquopy assets, and native libraries for arm64-v8a and x86_64.
 - Still UNKNOWN: install/launch on the user's phone, whether Android FFmpeg calls run correctly end-to-end on-device, media output playback, QC behavior on representative files, export usability, and whether installation over an existing build is signature-compatible. Do not mark OSD complete until these are tested.
+
+
+## 2026-10-11 — Integrated Android multi-track soundtrack beta (candidate; CI pending)
+
+- User reported that Web Edition features were not visible in OSD. Confirmed the HTML prototypes were separate artifacts and were not integrated into the Android repository.
+- Created feature branch `feature/android-multitrack-stem-mix` from the inspected `main` tree at `627f9dd2f75bbda6bb29a9a73523d9f50e82f2bb`; main was not modified.
+- Added a visible Android entry point: “Build multi-track soundtrack (video + 2+ audio tracks)”. Workflow selects a source video, then 2+ audio files; asks for per-track gain (-24 dB to +12 dB); assigns track roles by selection order (Dialogue, Music, Sound Effects, Ambience, then Additional track); imports each source into prefixed app-private input files; passes stem paths, roles, and gains into the existing Python processing pipeline; and enables playback/export only after delivery evidence verification.
+- Hardened `mix_stems`: validates role/gain counts, finite gain values and bounds, explicitly rejects non-zero music ducking because it is not implemented, disables amix's hidden normalization so specified relative gains are preserved, and writes a floating-point PCM intermediate to avoid early PCM16 clipping before the downstream limiter.
+- Added a source-vs-stem duration gate (0.15 s tolerance) so incompatible timelines fail early rather than creating a misleading output.
+- Added regression tests for explicit gain use, floating-point mix output, invalid gain/role counts, unsupported ducking, and source/stem duration checks.
+- Updated README with discoverability, workflow steps, current limitations, and explicit warning that timeline offsets, trims, fades, solo/mute, and per-role processing are not yet implemented in the Android workflow.
+- Candidate commits created on the feature branch:
+  - Android UI workflow: `c8995162cf6362b99f29c0fe3d377f66193c7149`
+  - Stem gain/headroom validation: `27e5becee5585b307ea04fd7494decbe64335f17`
+  - Multi-track regression tests: `18475f8dd3745a3700f815d212c62976ac3e286f`
+  - Timeline compatibility validation: `292705738c065d1fc1decf5bd77e4233e06fb43b`
+  - Timeline regression tests: `c14d316ad07d871e513152d3a0540aad04956380`
+  - README discoverability: `8495be14af1dc742bb641f04fa82ad4c2c8c11a1`
+- Status at log entry: source changes committed to feature branch; CI, APK artifact integrity, physical installation, actual multi-file selection, rendering, playback/export, and Galaxy A20 performance are still pending. Do not merge or describe this as verified until CI and runtime acceptance evidence are reviewed.
