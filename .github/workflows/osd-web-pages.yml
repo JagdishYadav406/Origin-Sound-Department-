@@ -1,0 +1,71 @@
+name: OSD Web Edition — verify and deploy
+on:
+  pull_request:
+    branches: [main]
+    paths: ["web/**", "tests/test_web_static.py", ".github/workflows/osd-web-pages.yml"]
+  push:
+    branches: [main]
+    paths: ["web/**", "tests/test_web_static.py", ".github/workflows/osd-web-pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osd-web-pages
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run web static safety tests
+        run: python tests/test_web_static.py -v
+      - name: Check inline JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("web/index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script>", html, re.I | re.S)
+          if not scripts:
+              raise SystemExit("No inline application script found")
+          Path("/tmp/osd-web-inline.js").write_text("\n".join(scripts), encoding="utf-8")
+          PY
+          node --check /tmp/osd-web-inline.js
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload web application
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - name: Deploy web application
+        id: deployment
+        uses: actions/deploy-pages@v4
