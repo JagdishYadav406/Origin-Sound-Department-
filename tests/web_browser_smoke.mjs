@@ -140,7 +140,7 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 6);
+  assert.equal(project.projectVersion, 7);
   assert.equal(project.settings.dialogue.eqbass, 6, "project must preserve EQ settings");
   assert.equal(project.settings.dialogue.pan, -100, "project must preserve pan settings");
   assert.equal(project.settings.dialogue.solo, true, "project must preserve solo state");
@@ -149,6 +149,10 @@ try {
   assert.ok(project.sources?.dialogue?.sha256, "project should record the source fingerprint");
   assert.equal(project.sources?.dialogue?.decoded, true);
   assert.ok(!Object.hasOwn(project, "audioData"), "project must not silently embed source audio");
+  assert.equal(project.videoReference, null, "project without a video must store no video reference");
+  assert.deepEqual(project.videoCues, [], "project without video cues should store an empty cue list");
+  assert.equal(await page.locator("#referenceVideo").count(), 1, "video reference picker should be available");
+  assert.equal(await page.locator("#referenceVideoPlayer").isVisible(), false, "video preview should remain hidden until a video is selected");
 
   // Load the saved project back through the real file input and verify settings restore.
   await page.locator("#eqbass-dialogue").evaluate(el => { el.value = "0"; el.dispatchEvent(new Event("input", { bubbles: true })); });
