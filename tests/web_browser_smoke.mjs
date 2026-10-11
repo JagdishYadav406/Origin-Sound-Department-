@@ -133,6 +133,27 @@ try {
   assert.equal(panCheck.rightPeak, 0, "hard-left mono pan must leave the right channel silent");
 
   await page.locator("#solo-dialogue").click();
+  await page.locator("#extraClipTrack").selectOption("dialogue");
+  await page.locator("#extraClipOffset").fill("0.2");
+  await page.locator("#extraClipGain").fill("-6");
+  await page.locator("#extraClipFile").setInputFiles({
+    name: "osd-smoke-extra-clip.wav",
+    mimeType: "audio/wav",
+    buffer: makePcmWav({ seconds: 0.5, frequency: 660, amplitude: 0.05 })
+  });
+  await page.waitForFunction(() => (document.querySelector("#extraClipStatus")?.textContent || "").startsWith("Added "), null, { timeout: 20000 });
+  assert.equal(await page.locator("#extraClipList button").count(), 1, "additional clip should appear in the timeline");
+  await page.locator("#render").click();
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\\b/, "render including an extra clip should succeed");
+  const clipRenderBytes = await page.evaluate(async () => (await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).byteLength);
+  assert.ok(clipRenderBytes > panCheck.byteLength, "an offset clip should extend the rendered WAV duration");
+  await page.locator("#extraClipList button").click();
+  assert.equal(await page.locator("#extraClipList button").count(), 0, "removing a clip should remove only that timeline entry");
+  await page.locator("#render").click();
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\\b/, "render after clip removal should succeed");
+
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#saveProject").click();
   const download = await downloadPromise;
