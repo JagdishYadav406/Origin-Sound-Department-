@@ -33,3 +33,12 @@
 - Expanded static regression coverage for project save/load and evidence controls, local-media policy, pre-render clipping gate, serialized WAV/PCM integrity checks, mobile breakpoints, keyboard focus visibility, and reduced-motion styling.
 - These are source-level regression checks, not a browser runtime test. The app still requires successful CI and real-browser/device acceptance before its runtime status can change from NOT VERIFIED.
 - Current source under test: `web/index.html`, blob SHA `6ebb003e4763e05ef68a48702d8686e1236c2c73`.
+
+
+## 2026-10-11 — Web deployment checkpoint
+
+- PR #24 merged to main as commit `8a9d25741fcda41ac35483a112b2b7f428661d29`.
+- GitHub Actions run `38117230688` completed successfully. The verify job passed the expanded Python static-safety tests and Node JavaScript syntax check. The deploy job passed GitHub Pages configuration, uploaded the `web/` artifact, and completed the deployment action.
+- This verifies that GitHub's deployment workflow completed. The live public URL and actual browser rendering have not been independently verified from this session; do not treat deployment success as device/runtime acceptance.
+- Next acceptance step: open the Pages URL shown by the deployment environment in a browser, then test on the user's Galaxy A20 with small real audio files before trying larger media.
+- Functional limitations remain: no dialogue separation, EQ/dynamics/limiter, LUFS, standards-compliant true-peak, or direct video muxing. The browser edition is an early multi-track mixing tool, not the full autonomous OSD department.
