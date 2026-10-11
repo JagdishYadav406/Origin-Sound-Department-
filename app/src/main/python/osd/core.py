@@ -203,15 +203,27 @@ def mix_stems(stems,out,roles=None,gains=None,duck_music_db=0.0):
     if not stems: raise OSDRunError('No stems supplied')
     compat=stem_compatibility(stems)
     if not compat['checks']['all_pass']: raise OSDRunError('Stem compatibility failed: '+json.dumps(compat['checks'],sort_keys=True))
-    gains=list(gains or [0.0]*len(stems))
+    if roles is not None and len(roles) != len(stems):
+        raise OSDRunError('Role count must match stem count')
+    try:
+        gains=[float(x) for x in (gains if gains is not None else [0.0]*len(stems))]
+        duck_music_db=float(duck_music_db)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise OSDRunError('Stem gains and ducking must be finite numbers') from exc
     if len(gains)!=len(stems): raise OSDRunError('Gain count must match stem count')
+    if not all(math.isfinite(g) and -24.0 <= g <= 12.0 for g in gains):
+        raise OSDRunError('Each stem gain must be finite and between -24 dB and +12 dB')
+    if not math.isfinite(duck_music_db) or duck_music_db != 0.0:
+        raise OSDRunError('Automatic music ducking is not implemented; use 0 dB')
     inputs=[]; filters=[]; labels=[]
     for i,st in enumerate(stems):
         inputs += ['-i',str(st)]
-        filters.append(f'[{i}:a]volume={float(gains[i]):.4f}dB[a{i}]'); labels.append(f'[a{i}]')
-    mix=''.join(labels)+f'amix=inputs={len(stems)}:duration=longest:dropout_transition=0[m]'
+        filters.append(f'[{i}:a]volume={gains[i]:.4f}dB[a{i}]'); labels.append(f'[a{i}]')
+    # Do not silently normalize the relative gains. Keep an unclipped floating-point
+    # intermediate so the later limiter can manage peaks without prior PCM16 clipping.
+    mix=''.join(labels)+f'amix=inputs={len(stems)}:duration=longest:dropout_transition=0:normalize=0[m]'
     filters.append(mix)
-    cmd=['ffmpeg','-y','-hide_banner']+inputs+['-filter_complex',';'.join(filters),'-map','[m]','-ar',str(compat['streams'][0]['sample_rate']),'-ac',str(compat['streams'][0]['channels']),str(out)]
+    cmd=['ffmpeg','-y','-hide_banner']+inputs+['-filter_complex',';'.join(filters),'-map','[m]','-ar',str(compat['streams'][0]['sample_rate']),'-ac',str(compat['streams'][0]['channels']),'-c:a','pcm_f32le',str(out)]
     _run(cmd)
 
 def render_audio(src,out):
