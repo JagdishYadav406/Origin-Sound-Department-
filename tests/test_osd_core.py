@@ -181,14 +181,18 @@ class StemTimelineTests(unittest.TestCase):
 class SilentVideoStemTests(unittest.TestCase):
     @patch.object(core, "ffprobe")
     def test_video_only_source_is_allowed_only_when_replacing_audio(self, probe):
+        import tempfile
         probe.return_value = {
             "streams": [{"codec_type":"video","codec_name":"h264","duration":"10.0","start_time":"0.0"}],
             "format": {"duration":"10.0","format_name":"mp4","format_long_name":"MP4"},
         }
-        with self.assertRaisesRegex(core.OSDRunError, "video but no audio"):
-            core.inspect_media("silent-video.mp4")
-        info = core.inspect_media("silent-video.mp4", allow_video_only=True)
-        self.assertTrue(info["video"])
-        self.assertEqual(info["audio_stream_count"], 0)
-        self.assertEqual(info["audio_selection_policy"], "no_audio_video_source_replaced_by_stems")
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "silent-video.mp4"
+            source.write_bytes(b"test fixture")
+            with self.assertRaisesRegex(core.OSDRunError, "video but no audio"):
+                core.inspect_media(source)
+            info = core.inspect_media(source, allow_video_only=True)
+            self.assertTrue(info["video"])
+            self.assertEqual(info["audio_stream_count"], 0)
+            self.assertEqual(info["audio_selection_policy"], "no_audio_video_source_replaced_by_stems")
 
