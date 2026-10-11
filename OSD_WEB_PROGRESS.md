@@ -42,3 +42,12 @@
 - This verifies that GitHub's deployment workflow completed. The live public URL and actual browser rendering have not been independently verified from this session; do not treat deployment success as device/runtime acceptance.
 - Next acceptance step: open the Pages URL shown by the deployment environment in a browser, then test on the user's Galaxy A20 with small real audio files before trying larger media.
 - Functional limitations remain: no dialogue separation, EQ/dynamics/limiter, LUFS, standards-compliant true-peak, or direct video muxing. The browser edition is an early multi-track mixing tool, not the full autonomous OSD department.
+
+
+## 2026-10-11 — Chromium runtime smoke test
+
+- Added `tests/web_browser_smoke.mjs` and wired it into the web verification job before deployment.
+- PR #25 merged to main as `f3a06e762d5250fff96dfcb9cd73b25cec02650a`.
+- The PR's GitHub Actions web verification run `38118702012` completed successfully, including Chromium installation and the runtime smoke test for generated local WAV import, memory preflight/post-decode checks, stereo WAV render, serialized PCM/WAV integrity, local Blob preview, and project JSON download/source fingerprint.
+- This is automated Chromium CI evidence only. It is not a physical Samsung Galaxy A20 test and does not establish that the user can access the public Pages URL from their phone.
+- The post-merge main deployment run `38118741123` was still in progress at the time of this checkpoint; do not claim the new deployment completed until its final status is confirmed.
