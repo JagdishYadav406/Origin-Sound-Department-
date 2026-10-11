@@ -75,6 +75,19 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("No sound is downloaded or automatically mixed", self.html)
         self.assertIn("aiAnalysisController.abort()", self.inline_script)
 
+    def test_sound_director_can_combine_time_aligned_visual_and_audio_cue_proposals(self):
+        self.assertIn('id="combineAIResults"', self.html)
+        self.assertIn('id="aiTimelineAligned"', self.html)
+        self.assertIn("aiVisualLastResult=data", self.inline_script)
+        self.assertIn("aiAudioLastResult=data", self.inline_script)
+        self.assertIn("aligned_start_confirmed=true auto_applied=false", self.inline_script)
+        self.assertIn("AI_AUDIO_VISUAL_PLAN_COMBINED", self.inline_script)
+        self.assertIn("Visual observation", self.inline_script)
+        self.assertIn("Audible evidence", self.inline_script)
+        self.assertIn("updateCombineAIButton()", self.inline_script)
+        self.assertIn("aiVisualLastResult=null;aiAudioLastResult=null;aiCombinedLastResult=null", self.inline_script)
+        self.assertIn("confirm the selected audio starts at 00:00 of this same video", self.html)
+
     def test_ai_audio_analysis_requires_explicit_per_file_consent_and_bounded_upload(self):
         self.assertIn('id="aiAudioFile"', self.html)
         self.assertIn('id="aiAudioConsent"', self.html)
