@@ -160,3 +160,19 @@ class MultiTrackMixTests(unittest.TestCase):
         with self.assertRaisesRegex(core.OSDRunError, "not implemented"):
             core.mix_stems(["a.wav"], "out.wav", gains=[0.0], duck_music_db=-6.0)
 
+
+
+class StemTimelineTests(unittest.TestCase):
+    def test_matching_stem_durations_are_accepted(self):
+        core._assert_stem_durations(120.0, [{"duration": 120.1}], tolerance=0.15)
+
+    def test_mismatched_stem_duration_is_rejected(self):
+        with self.assertRaisesRegex(core.OSDRunError, "Stem duration must match"):
+            core._assert_stem_durations(120.0, [{"duration": 118.0}])
+
+    def test_unknown_or_invalid_duration_is_rejected(self):
+        for duration in (None, float("nan"), float("inf"), 0):
+            with self.subTest(duration=duration):
+                with self.assertRaises(core.OSDRunError):
+                    core._assert_stem_durations(120.0, [{"duration": duration}])
+
