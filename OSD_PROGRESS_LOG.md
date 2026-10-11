@@ -52,3 +52,11 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
 - Clarified in README that Dialogue/Music/SFX/Ambience are currently role labels only and do not yet trigger role-specific processing.
 - Follow-up commits: Android cancellation fix `1f7e4ed44e8e10dbb53132e3f292e2596529933e`; role-label clarification `2fafbb04c21495dc8024a61bad784ba078a08a54`.
 - CI for the earlier candidate had passed Python regression tests and was still building the release APK when last checked. That run does not include these two follow-up commits; the updated PR head needs its own CI result.
+
+
+## 2026-10-11 — Silent source video support in multitrack replacement workflow
+
+- Review found that the shared media inspector rejected video files with no embedded audio, even though the multitrack workflow explicitly replaces the video's soundtrack. This would block valid silent-video sources.
+- Added an explicit opt-in to inspect video-only sources when stem replacement is requested; ordinary single-file processing still rejects media with no audio stream.
+- Added a regression test with a self-contained temporary video-only fixture. CI is running for this follow-up; results must be checked against the latest branch head before calling it verified.
+- Commits: implementation `b847b904d6a99754ea9de5801fa5d14b9579506e`; regression test `0eb30c0b347090f3fe8adabeba8bcad6ad10786d`.
