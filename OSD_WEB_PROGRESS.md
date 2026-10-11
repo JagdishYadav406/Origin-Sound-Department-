@@ -51,3 +51,15 @@
 - The PR's GitHub Actions web verification run `38118702012` completed successfully, including Chromium installation and the runtime smoke test for generated local WAV import, memory preflight/post-decode checks, stereo WAV render, serialized PCM/WAV integrity, local Blob preview, and project JSON download/source fingerprint.
 - This is automated Chromium CI evidence only. It is not a physical Samsung Galaxy A20 test and does not establish that the user can access the public Pages URL from their phone.
 - The post-merge main deployment run `38118741123` subsequently completed successfully: both verification and deployment jobs passed, including GitHub Pages configuration, artifact upload, and deploy action. The published URL and rendering on the user's phone still have not been independently verified from this session.
+
+
+## 2026-10-11 — Three-band per-track EQ implementation candidate
+
+- Created isolated branch `feature/per-track-three-band-eq` from `main`; the default branch remains unchanged while this candidate is tested.
+- Added independent Bass (120 Hz), Mid (1 kHz), and Treble (8 kHz) peaking-EQ gain controls for Dialogue, Music, SFX, and Ambience, each adjustable from -12 dB to +12 dB in 0.5 dB steps. All default to 0 dB; originals are not modified.
+- The EQ runs on temporary render-time sample copies, leaving the imported AudioBuffers untouched. The render working-memory estimate now reserves an additional decoded-size copy for the EQ processing path.
+- Project schema version advanced to 4; loading versions 1–3 remains supported and defaults the new EQ bands to 0 dB. EQ settings are included in the evidence report. Reset now returns all three bands to 0 dB.
+- Extended the Chromium smoke test to check the controls, render the same low-frequency test source with bass EQ enabled, assert that serialized PCM changes, and confirm EQ values persist in saved project JSON.
+- Current branch head: `f7a609da8d2f0d2d320e6ae0a9302fb43be40a28` (latest change is the browser-test event dispatch fix).
+- Verification status: changes have been authored but GitHub Actions has not yet been observed for this branch. Do not merge or call this feature verified until the browser test and all required CI checks pass. Physical Galaxy A20 compatibility remains untested.
+- Limitations: this is three fixed-frequency peaking bands, not a full parametric equalizer; no EQ curve graph, compressor, limiter, LUFS, standards-compliant true-peak, or video muxing has been added.
