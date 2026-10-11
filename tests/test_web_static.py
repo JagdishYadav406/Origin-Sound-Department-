@@ -75,6 +75,21 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("No sound is downloaded or automatically mixed", self.html)
         self.assertIn("aiAnalysisController.abort()", self.inline_script)
 
+    def test_local_audio_evidence_and_sound_library_are_explicit_and_session_scoped(self):
+        self.assertIn('id="audioEvidence"', self.html)
+        self.assertIn('id="evidenceAudioFile"', self.html)
+        self.assertIn('id="analyzeAudioEvidence"', self.html)
+        self.assertIn("decodeAudioData(bytes.slice(0))", self.inline_script)
+        self.assertIn("LOCAL_AUDIO_MEASURED", self.inline_script)
+        self.assertIn("Low-level spans can be silence, quiet ambience, or soft performance", self.inline_script)
+        self.assertIn('id="soundLibraryFiles"', self.html)
+        self.assertIn("LOCAL_SOUND_LIBRARY_INDEXED", self.inline_script)
+        self.assertIn("LOCAL_SOUND_CUE_MATCH", self.inline_script)
+        self.assertIn("audio_embeddings=false", self.inline_script)
+        self.assertIn("persisted=false", self.inline_script)
+        self.assertIn("not a verified sonic match", self.inline_script)
+        self.assertIn("does not identify speech, emotions, or sound events", self.html)
+
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
