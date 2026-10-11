@@ -43,11 +43,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Previous render — OUTDATED", self.html)
         self.assertIn("Latest completed render — CURRENT", self.inline_script)
         self.assertIn("markMixPreviewStale", self.inline_script)
+        self.assertIn('id="referenceVideo"', self.html)
+        self.assertIn('id="referenceVideoPlayer"', self.html)
+        self.assertIn('id="addVideoCue"', self.html)
+        self.assertIn("videoCues:videoCues.map", self.inline_script)
+        self.assertIn("automatic scene interpretation", self.html)
+        self.assertIn("videoReference:videoFile?", self.inline_script)
 
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
-        self.assertIn("Audio files are not embedded", self.inline_script)
+        self.assertIn("Audio and video media are not embedded", self.inline_script)
         self.assertIn("has not been re-verified in this session", self.inline_script)
 
     def test_mix_render_has_preallocation_clipping_gate_and_serialized_pcm_checks(self):
