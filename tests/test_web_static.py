@@ -138,6 +138,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("auto_mixed=false", self.inline_script)
         self.assertIn("not yet a confirmed mix placement", self.inline_script)
 
+    def test_reviewed_ai_cue_can_set_track_offset_without_claiming_separate_clip_editing(self):
+        self.assertIn("Set track offset to cue start", self.inline_script)
+        self.assertIn("AI_CUE_START_APPLIED_TO_TRACK_OFFSET", self.inline_script)
+        self.assertIn("separate_clip_timeline=false", self.inline_script)
+        self.assertIn("not create a separate clip", self.inline_script)
+        self.assertIn("outside the supported 0–3600 second track-offset range", self.inline_script)
+
     def test_ai_sound_plan_and_cue_proposals_are_exportable(self):
         self.assertIn('id="exportAIPlanJSON"', self.html)
         self.assertIn('id="exportAICuesCSV"', self.html)

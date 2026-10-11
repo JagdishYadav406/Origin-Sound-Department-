@@ -275,7 +275,17 @@ $('matchSoundCues').addEventListener('click',()=>{
     log(`SOUND_LIBRARY_CANDIDATE_SENT_TO_IMPORT track=${name} cue_category=${cue.category} file=${JSON.stringify(hit.entry.file.name)} text_match_score=${hit.score.toFixed(3)} auto_mixed=false`);
    }catch(err){$('soundLibraryStatus').textContent=String(err.message||err)}
   });
-  loadRow.append(target,loadButton);item.appendChild(loadRow);row.appendChild(item)}
+  const offsetButton=document.createElement('button');offsetButton.type='button';offsetButton.className='btn';offsetButton.textContent='Set track offset to cue start';
+  offsetButton.addEventListener('click',()=>{
+   const name=target.value,t=tracks[name],input=$(`offset-${name}`),start=Number(cue.start_seconds);
+   if(!Number.isFinite(start)||start<0||start>3600){$('soundLibraryStatus').textContent='Cue start is outside the supported 0–3600 second track-offset range. No setting changed.';return}
+   if(!input){$('soundLibraryStatus').textContent='Could not locate the selected track offset control.';return}
+   if((t?.buffer||Number(input.value)!==0)&&!window.confirm(`This changes the start offset for the entire ${name} track, not just a separate clip. OSD currently supports one source per track. Continue?`))return;
+   input.value=String(start);input.dispatchEvent(new Event('input',{bubbles:true}));
+   log(`AI_CUE_START_APPLIED_TO_TRACK_OFFSET track=${name} cue_start_seconds=${start} entire_track=true separate_clip_timeline=false`);
+   $('soundLibraryStatus').textContent=`Set ${name} track offset to ${start.toFixed(3)} seconds from the reviewed cue. This moves the entire track; it does not create a separate clip or verify sonic fit. Load the candidate separately if needed.`;
+  });
+  loadRow.append(target,loadButton,offsetButton);item.appendChild(loadRow);row.appendChild(item)}
   host.appendChild(row)
  }
  $('soundLibraryStatus').textContent=`Matching finished: ${matches} candidate rows across ${aiLastResult.analysis.cues.length} reviewed AI cues. Scores are text heuristics, not a verified sonic match.`;
