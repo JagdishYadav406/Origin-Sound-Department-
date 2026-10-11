@@ -60,3 +60,8 @@ node --test ai-service/server.test.mjs
 ```
 
 The tests use a fake provider response; they do not spend API credits or prove that a real provider key/model is available. Do not merge or deploy based only on the fake-provider test: run the web browser smoke test and a consented real-service test as separate acceptance checks.
+
+
+## Deployment guide
+
+For a ready-to-import Render Blueprint, required server secrets, browser configuration, privacy limits and acceptance checks, see [Deploy the optional OSD AI Sound Director](../docs/DEPLOY_AI_SOUND_DIRECTOR.md). The repository's `render.yaml` configures the service but does not create a live deployment by itself; you must connect the repository to a hosting account and supply the two secrets there.
