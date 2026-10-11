@@ -11,3 +11,10 @@
 - Current features: four-track local mixing, gain/offset/trim/fades, master trim, stereo WAV render, project JSON save/load, evidence report.
 - Known gaps: dialogue separation, EQ/dynamics/limiter, LUFS, standards-compliant true-peak, video muxing. Do not describe as the complete autonomous OSD department.
 - Runtime status: browser/device operation is NOT VERIFIED. Earlier Chromium attempts were blocked by the session environment. No physical-device pass claimed.
+
+
+## 2026-10-11 — Release preparation correction
+
+- Preserved the Android repository's root README; web-specific instructions are in `web/README.md`.
+- CI test invocation runs the test file directly to avoid package-name collisions.
+- Pages configuration requests enablement explicitly; deployment remains contingent on workflow success.
