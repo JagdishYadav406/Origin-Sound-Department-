@@ -50,4 +50,4 @@
 - PR #25 merged to main as `f3a06e762d5250fff96dfcb9cd73b25cec02650a`.
 - The PR's GitHub Actions web verification run `38118702012` completed successfully, including Chromium installation and the runtime smoke test for generated local WAV import, memory preflight/post-decode checks, stereo WAV render, serialized PCM/WAV integrity, local Blob preview, and project JSON download/source fingerprint.
 - This is automated Chromium CI evidence only. It is not a physical Samsung Galaxy A20 test and does not establish that the user can access the public Pages URL from their phone.
-- The post-merge main deployment run `38118741123` was still in progress at the time of this checkpoint; do not claim the new deployment completed until its final status is confirmed.
+- The post-merge main deployment run `38118741123` subsequently completed successfully: both verification and deployment jobs passed, including GitHub Pages configuration, artifact upload, and deploy action. The published URL and rendering on the user's phone still have not been independently verified from this session.
