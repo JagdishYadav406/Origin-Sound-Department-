@@ -173,7 +173,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("duckThresholdDb:Number($('duckThreshold').value)", self.inline_script)
         self.assertIn("const duckDepthDb=obj.master", self.inline_script)
         self.assertIn("const duckThresholdDb=obj.master", self.inline_script)
-        self.assertIn("const PROJECT_VERSION=10", self.inline_script)
+        self.assertIn("const PROJECT_VERSION=11", self.inline_script)
         self.assertIn("dialogueEnvelope=0;buf=new ArrayBuffer(output)", self.inline_script)
         self.assertIn("not speech recognition or an automatic mix-quality decision", self.html)
 
@@ -192,8 +192,19 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("timelineClips:extraClips.map", self.inline_script)
         self.assertIn("mediaEmbedded:false", self.inline_script)
         self.assertIn("source_preserved=true", self.inline_script)
-        self.assertIn("PROJECT_VERSION=10", self.inline_script)
+        self.assertIn("PROJECT_VERSION=11", self.inline_script)
 
+    def test_per_track_noise_gate_is_reversible_and_off_by_default(self):
+        self.assertIn("function dynamicsSettings(name)", self.inline_script)
+        self.assertIn("gateThreshold:[-60,-20],gateReduction:[0,36]", self.inline_script)
+        self.assertIn("s.maxGateReductionDb=dsp.gateReduction", self.inline_script)
+        self.assertIn("if(dsp.gateReduction>0)", self.inline_script)
+        self.assertIn("dsp.gateReduction===0", self.inline_script)
+        self.assertIn("PROJECT_VERSION=11", self.inline_script)
+        for track in ("dialogue", "music", "sfx", "ambience"):
+            self.assertIn(f'id="gateThreshold-{track}"', self.html)
+            self.assertIn(f'id="gateReduction-{track}"', self.html)
+        self.assertIn("obj.projectVersion<11&&k==='gateReduction'?0:undefined", self.inline_script)
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
