@@ -94,3 +94,14 @@
 - Post-merge main workflow run `38120655145` completed successfully; both verification and GitHub Pages deployment passed.
 - The live Pages environment reported by the deployment workflow is `https://jagdishyadav406.github.io/Origin-Sound-Department-/`. This is deployment evidence, not physical-device acceptance. The user's Galaxy A20 and actual download/playback remain untested.
 - Main now includes three-band per-track EQ and attenuation-only pan/balance. Remaining core gaps include dynamics/limiting, integrated LUFS, standards-compliant true-peak, dialogue separation, and direct video muxing.
+
+
+## 2026-10-11 — Per-track mute/solo implementation candidate
+
+- Created isolated branch `feature/track-mute-solo` from main; main remains unchanged pending CI evidence.
+- Added accessible per-track Mute and Solo buttons for Dialogue, Music, SFX, and Ambience. Mute excludes a track from the render; when one or more tracks are soloed, only soloed tracks that are not muted are rendered. Source buffers remain untouched.
+- Added a safety block when mute/solo state leaves no audible tracks, rather than silently rendering an empty mix.
+- Project schema advanced to v6. Mute/solo state is saved per track and restored from v6 projects; v1–v5 projects default both states off. Session evidence snapshots now include mute/solo states.
+- Added Chromium smoke coverage for mute-to-digital-silence, solo isolation with a second loaded track, and project-state persistence.
+- Candidate commits: app `4dc186b53dadf6fed17250e9e949ac449c90304a`; browser test `3a7615df11eb54405d585f11d39cc45084392b91`; README update `1b310bf3f509a5e82ef13eb50b46e7e7615c38ff`.
+- Status at checkpoint: candidate changes are not merged. CI must pass before release. Phone compatibility remains unverified.
