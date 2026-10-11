@@ -75,7 +75,7 @@ try {
   await page.locator("#eqbass-dialogue").evaluate(el => { el.value = "6"; el.dispatchEvent(new Event("input", { bubbles: true })); });
   await page.locator("#render").click();
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
-  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\\b/, "EQ render failed");
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "EQ render failed");
   const eqPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
   assert.notDeepEqual(eqPcm, flatEqPcm, "enabling bass EQ must alter rendered PCM");
   assert.match(await page.locator("#log").innerText(), /pcm_scan=PASS/);
