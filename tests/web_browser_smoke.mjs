@@ -140,7 +140,8 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 9);
+  assert.equal(project.projectVersion, 10);
+  assert.equal(project.timelineClips?.length, 0, "project should record an empty clip manifest when no extra clips are loaded");
   assert.equal(project.master.duckDepthDb, 0, 'dialogue ducking must default to off');
   assert.equal(project.master.duckThresholdDb, -30, 'project must preserve the ducking threshold');
   assert.equal(project.settings.dialogue.hpf, 80, "project must preserve the dialogue high-pass filter");
