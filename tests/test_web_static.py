@@ -173,9 +173,26 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("duckThresholdDb:Number($('duckThreshold').value)", self.inline_script)
         self.assertIn("const duckDepthDb=obj.master", self.inline_script)
         self.assertIn("const duckThresholdDb=obj.master", self.inline_script)
-        self.assertIn("const PROJECT_VERSION=9", self.inline_script)
+        self.assertIn("const PROJECT_VERSION=10", self.inline_script)
         self.assertIn("dialogueEnvelope=0;buf=new ArrayBuffer(output)", self.inline_script)
         self.assertIn("not speech recognition or an automatic mix-quality decision", self.html)
+
+    def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
+        for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
+                           "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
+                           "extraClipFile", "extraClipList"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn("const extraClips=[]", self.inline_script)
+        self.assertIn("concat(extraClips.filter", self.inline_script)
+        self.assertIn("TIMELINE_CLIP_ADDED", self.inline_script)
+        self.assertIn("TIMELINE_CLIP_REMOVED", self.inline_script)
+        self.assertIn("extraClips.reduce", self.inline_script)
+        self.assertIn("if(!ts.length&&!extraClips.length)return null", self.inline_script)
+        self.assertIn("(!ts.length&&!extraClips.length)||rendering", self.inline_script)
+        self.assertIn("timelineClips:extraClips.map", self.inline_script)
+        self.assertIn("mediaEmbedded:false", self.inline_script)
+        self.assertIn("source_preserved=true", self.inline_script)
+        self.assertIn("PROJECT_VERSION=10", self.inline_script)
 
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
