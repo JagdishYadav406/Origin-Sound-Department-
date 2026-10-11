@@ -145,14 +145,14 @@ try {
   assert.equal(await page.locator("#extraClipList button").count(), 1, "additional clip should appear in the timeline");
   await page.locator("#render").click();
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
-  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\\b/, "render including an extra clip should succeed");
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "render including an extra clip should succeed");
   const clipRenderBytes = await page.evaluate(async () => (await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).byteLength);
   assert.ok(clipRenderBytes > panCheck.byteLength, "an offset clip should extend the rendered WAV duration");
   await page.locator("#extraClipList button").click();
   assert.equal(await page.locator("#extraClipList button").count(), 0, "removing a clip should remove only that timeline entry");
   await page.locator("#render").click();
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
-  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\\b/, "render after clip removal should succeed");
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "render after clip removal should succeed");
 
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#saveProject").click();
