@@ -138,6 +138,19 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("auto_mixed=false", self.inline_script)
         self.assertIn("not yet a confirmed mix placement", self.inline_script)
 
+    def test_dialogue_sidechain_music_ducking_is_optional_and_persisted(self):
+        self.assertIn('id="duckDepth"', self.html)
+        self.assertIn('id="duckThreshold"', self.html)
+        self.assertIn("dialogueEnvelope", self.inline_script)
+        self.assertIn("s.name==='music'?duckGain:1", self.inline_script)
+        self.assertIn("duckDepthDb:Number($('duckDepth').value)", self.inline_script)
+        self.assertIn("duckThresholdDb:Number($('duckThreshold').value)", self.inline_script)
+        self.assertIn("const duckDepthDb=obj.master", self.inline_script)
+        self.assertIn("const duckThresholdDb=obj.master", self.inline_script)
+        self.assertIn("const PROJECT_VERSION=9", self.inline_script)
+        self.assertIn("dialogueEnvelope=0;buf=new ArrayBuffer(output)", self.inline_script)
+        self.assertIn("not speech recognition or an automatic mix-quality decision", self.html)
+
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
