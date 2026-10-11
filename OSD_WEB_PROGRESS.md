@@ -105,3 +105,16 @@
 - Added Chromium smoke coverage for mute-to-digital-silence, solo isolation with a second loaded track, and project-state persistence.
 - Candidate commits: app `4dc186b53dadf6fed17250e9e949ac449c90304a`; browser test `3a7615df11eb54405d585f11d39cc45084392b91`; README update `1b310bf3f509a5e82ef13eb50b46e7e7615c38ff`.
 - Status at checkpoint: candidate changes are not merged. CI must pass before release. Phone compatibility remains unverified.
+
+## 2026-10-11 — Video study, cue export, and extraction checkpoint
+
+- PR #31 corrected the web capability notice so it accurately describes the implemented three-band EQ; merged to main as commit `afb607d3cfcd3670fcbc8ccca7f3195a2bfcb469`.
+- PR #32 marks prior mix previews stale after any relevant setting changes; merged as `de36c9ef0fb8f1927908294dd8e5c098a66f8155`. This prevents an old render preview from being mistaken for the current mix.
+- PR #33 added local video reference preview and timestamped edit cues, with project schema v7 and regression tests; merged as `6801e7ea7342eaf8598c46b0a39d953986c4fb3f`.
+- PR #34 added CSV export for time-coded video study cues, including spreadsheet-compatible BOM/line endings and regression assertions; merged as `3dd75bc122babfdbca402dae8949864947c9a0c5`.
+- PR #35 added experimental local reference-video audio capture into one selected mix track. It uses browser `captureStream`/`mozCaptureStream` and `MediaRecorder`, runs in real time, and rejects clips longer than 10 minutes, unsupported APIs, missing captured audio, or conservative memory-budget failures. Captured audio is passed to the existing track import validation pipeline. Main merge commit: `a8e604854663578cbce53b30b0aaeb906b4f99f1`.
+- CI after PR #35: main web verification/deployment run `38142107646` and Android build run `38142107670` completed successfully. This is CI evidence only, not Galaxy A20 acceptance.
+- Improvement review found two safety/documentation gaps in the experimental capture flow: browser MediaRecorder may re-encode audio (not bit-perfect), and replacing the reference video during capture must cancel/discard the in-flight capture.
+- PR #36 implements both corrections and adds regression assertions. Candidate head `7d3bd7936d082aecd459892fc6ed2ec7310f8120`. Web workflow `38142594369` and Android workflow `38142594474` completed successfully on this branch. **PR #36 remains open/unmerged at this checkpoint; main is unchanged by PR #36.**
+- Next: merge PR #36 only after reviewing the passing checks; then test short video capture on Android Chrome, checking browser support, output decode, duration/synchronization, failure recovery, and source preservation. Do not describe capture as reliable on-device until those tests are performed.
+- Known limitations remain: capture is browser-dependent and real-time, may re-encode audio, has no frame-accurate sync guarantee, does not perform AI scene understanding, and does not mux the final mix back into video.
