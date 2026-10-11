@@ -10,19 +10,19 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.html = HTML.read_text(encoding="utf-8")
-        scripts = re.findall(r"<script\\b[^>]*>(.*?)</script>", cls.html, re.I | re.S)
-        cls.inline_script = "\\n".join(scripts)
+        scripts = re.findall(r"<script\b[^>]*>(.*?)</script>", cls.html, re.I | re.S)
+        cls.inline_script = "\n".join(scripts)
 
     def test_single_self_contained_page_and_no_remote_scripts(self):
         self.assertTrue(self.html.lstrip().lower().startswith("<!doctype html>"))
-        self.assertNotRegex(self.html, r"<script\\b[^>]+src\\s*=")
-        self.assertNotRegex(self.html, r"<(?:iframe|object|embed)\\b")
+        self.assertNotRegex(self.html, r"<script\b[^>]+src\s*=")
+        self.assertNotRegex(self.html, r"<(?:iframe|object|embed)\b")
 
     def test_ids_are_unique_and_literal_id_references_resolve(self):
-        ids = re.findall(r"""\\bid=["\\']([^"\\']+)["\\']""", self.html)
+        ids = re.findall(r"""\bid=["\']([^"\']+)["\']""", self.html)
         self.assertEqual(len(ids), len(set(ids)), "duplicate HTML ids found")
         available = set(ids)
-        refs = set(re.findall(r"""\\$\\([\\'"]([A-Za-z][A-Za-z0-9_-]*)[\\'"]\\)""", self.inline_script))
+        refs = set(re.findall(r"""\$\([\'"]([A-Za-z][A-Za-z0-9_-]*)[\'"]\)""", self.inline_script))
         self.assertTrue(refs.issubset(available), "missing ids: " + repr(sorted(refs - available)))
 
     def test_memory_preflight_precedes_full_read_and_decode(self):
