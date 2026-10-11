@@ -53,6 +53,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("videoCues:videoCues.map", self.inline_script)
         self.assertIn("automatic scene interpretation", self.html)
         self.assertIn("videoReference:videoFile?", self.inline_script)
+        self.assertIn('id="extractVideoAudio"', self.html)
+        self.assertIn('id="cancelVideoAudio"', self.html)
+        self.assertIn('id="videoAudioTarget"', self.html)
+        self.assertIn("VIDEO_AUDIO_CAPTURE_STARTED", self.inline_script)
+        self.assertIn("VIDEO_AUDIO_CAPTURE_PREFLIGHT", self.inline_script)
+        self.assertIn("MediaRecorder.isTypeSupported", self.inline_script)
+        self.assertIn("duration>600", self.inline_script)
+        self.assertIn("normal import pipeline", self.html.lower())
 
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
