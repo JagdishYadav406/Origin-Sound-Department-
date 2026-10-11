@@ -69,6 +69,31 @@ try {
   const audioSrc = await page.locator("#mixPlayer").getAttribute("src");
   assert.ok(audioSrc?.startsWith("blob:"), "rendered preview must reference a local Blob URL");
   const flatEqPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
+
+  assert.equal(await page.locator("#mute-dialogue").count(), 1, "dialogue mute control should exist");
+  assert.equal(await page.locator("#solo-dialogue").count(), 1, "dialogue solo control should exist");
+  await page.locator("#file-music").setInputFiles({
+    name: "osd-smoke-music.wav",
+    mimeType: "audio/wav",
+    buffer: makePcmWav({ frequency: 440, amplitude: 0.06 })
+  });
+  await page.waitForFunction(() => (document.querySelector("#state-music")?.textContent || "").startsWith("Ready") || (document.querySelector("#state-music")?.textContent || "").startsWith("Source rejected"), null, { timeout: 20000 });
+  assert.match(await page.locator("#state-music").innerText(), /^Ready\b/, "music source import failed");
+  await page.locator("#solo-dialogue").click();
+  await page.locator("#render").click();
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "solo render should complete");
+  const soloPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
+  assert.deepEqual(soloPcm, flatEqPcm, "soloing dialogue should exclude the simultaneously loaded music track");
+  await page.locator("#solo-dialogue").click();
+  await page.locator("#mute-music").click();
+  await page.locator("#render").click();
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
+  assert.match(await page.locator("#message").innerText(), /^Stereo WAV created\b/, "muted-music render should complete");
+  const mutedMusicPcm = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.querySelector("#mixPlayer").src)).arrayBuffer()).slice(44)));
+  assert.deepEqual(mutedMusicPcm, flatEqPcm, "muting music should leave the dialogue-only mix unchanged");
+  // Keep music muted so the pre-existing hard-left pan assertion isolates dialogue.
+
   assert.equal(await page.locator("#eqbass-dialogue").count(), 1, "dialogue bass EQ control should exist");
   assert.equal(await page.locator("#eqmid-dialogue").count(), 1, "dialogue mid EQ control should exist");
   assert.equal(await page.locator("#eqtreble-dialogue").count(), 1, "dialogue treble EQ control should exist");
@@ -95,6 +120,7 @@ try {
   assert.ok(panCheck.byteLength > 44, "panned WAV should contain PCM frames");
   assert.equal(panCheck.rightPeak, 0, "hard-left mono pan must leave the right channel silent");
 
+  await page.locator("#solo-dialogue").click();
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#saveProject").click();
   const download = await downloadPromise;
@@ -102,9 +128,12 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 5);
+  assert.equal(project.projectVersion, 6);
   assert.equal(project.settings.dialogue.eqbass, 6, "project must preserve EQ settings");
   assert.equal(project.settings.dialogue.pan, -100, "project must preserve pan settings");
+  assert.equal(project.settings.dialogue.solo, true, "project must preserve solo state");
+  assert.equal(project.settings.dialogue.mute, false, "project must preserve mute state");
+  assert.equal(project.settings.music.mute, true, "project must preserve mute state for every track");
   assert.ok(project.sources?.dialogue?.sha256, "project should record the source fingerprint");
   assert.equal(project.sources?.dialogue?.decoded, true);
   assert.ok(!Object.hasOwn(project, "audioData"), "project must not silently embed source audio");
@@ -116,6 +145,7 @@ try {
     preflightAndPostDecodeMemoryChecks: "PASS",
     stereoWavRenderAndSerializedPcmQc: "PASS",
     localPreview: "PASS",
+    trackMuteSoloRenderAndProjectPersistence: "PASS",
     projectJsonDownloadAndFingerprint: "PASS",
     uncaughtPageErrors: errors.length
   }, null, 2));
