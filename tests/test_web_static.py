@@ -71,7 +71,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("!$('aiUploadConsent').checked", self.inline_script)
         self.assertIn("original_video_file_uploaded=false", self.inline_script)
         self.assertIn("audio_uploaded=false", self.inline_script)
-        self.assertIn("sampled-frame visual analysis", self.html)
+        self.assertIn("Visual analysis samples frames", self.html)
         self.assertIn("No sound is downloaded or automatically mixed", self.html)
         self.assertIn("aiAnalysisController.abort()", self.inline_script)
 
