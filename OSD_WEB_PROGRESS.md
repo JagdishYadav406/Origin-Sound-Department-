@@ -69,3 +69,12 @@
 
 - GitHub Actions web verification run `38120378125` completed successfully for candidate commit `98e3125d90df3c81c778aa2af08a99e8d84cf8de`. The Chromium smoke test demonstrated that raising the dialogue bass band changes rendered PCM while WAV integrity checks still pass, and the saved project retains the EQ value.
 - Pull request #26: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/26. Not merged at this checkpoint; deployment to the live Pages site and physical phone acceptance remain separate gates.
+
+
+## 2026-10-11 — Per-track pan/balance candidate
+
+- Created isolated branch `feature/per-track-pan-balance` from main after the EQ change was merged.
+- Added a Pan / balance control to Dialogue, Music, SFX and Ambience, centered by default. The control is attenuation-only: moving left reduces the right channel; moving right reduces the left channel. It never boosts either side, so it cannot create additional peak level by itself. On mono sources this produces a left/right placement; on stereo sources it acts as channel balance rather than stereo-width processing.
+- Project schema advanced to version 5; versions 1–4 default pan to center. Pan values are included in evidence and project JSON, reset returns to center, and render logs record the setting.
+- Extended Chromium smoke test to hard-pan the generated mono source left and assert that the serialized WAV's right channel is silent, while checking pan persists in the saved project.
+- Candidate app/test changes are committed on this branch; CI has not yet completed for this candidate. Do not merge until browser verification passes. Device compatibility remains unverified.
