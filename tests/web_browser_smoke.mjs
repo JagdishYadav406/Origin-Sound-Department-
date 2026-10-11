@@ -37,6 +37,11 @@ try {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
   assert.match(await page.title(), /Origin Sound Department|OSD/i);
   assert.equal(await page.locator("#render").isDisabled(), true, "render must remain disabled before a source is loaded");
+  await page.locator("#aiServiceUrl").fill("not a valid url");
+  await page.locator("#testAIConnection").click();
+  assert.match(await page.locator("#aiConnectionStatus").innerText(), /^Connection not tested:/, "invalid AI service URL must fail honestly");
+  await page.locator("#aiServiceUrl").fill("");
+
 
   await page.locator("#file-dialogue").setInputFiles({
     name: "osd-smoke-dialogue.wav",
@@ -210,6 +215,7 @@ try {
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({
     status: "PASS",
+    aiConnectionValidation: "PASS",
     sourceImport: "PASS",
     preflightAndPostDecodeMemoryChecks: "PASS",
     stereoWavRenderAndSerializedPcmQc: "PASS",
