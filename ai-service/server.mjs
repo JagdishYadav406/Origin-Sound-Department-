@@ -80,17 +80,21 @@ function corsHeaders(origin) {
 function readJson(req) {
   return new Promise((resolve, reject) => {
     let size = 0;
+    let rejected = false;
     const chunks = [];
     req.on("data", (chunk) => {
       size += chunk.length;
       if (size > MAX_BODY_BYTES) {
-        reject(Object.assign(new Error("Request body exceeds the 10 MiB limit."), { status: 413 }));
-        req.destroy();
+        if (!rejected) {
+          rejected = true;
+          reject(Object.assign(new Error("Request body exceeds the 10 MiB limit."), { status: 413 }));
+        }
         return;
       }
-      chunks.push(chunk);
+      if (!rejected) chunks.push(chunk);
     });
     req.on("end", () => {
+      if (rejected) return;
       try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8"))); }
       catch { reject(Object.assign(new Error("Request body must be valid JSON."), { status: 400 })); }
     });
@@ -203,7 +207,8 @@ async function callVisionModel(request, fetchImpl = fetch) {
   const text = extractOutputText(payload);
   let parsed;
   try { parsed = JSON.parse(text); } catch { throw Object.assign(new Error("AI provider returned invalid JSON; no result was accepted."), { status: 502 }); }
-  return validateModelResult(parsed, request.durationSeconds);
+  try { return validateModelResult(parsed, request.durationSeconds); }
+  catch (error) { throw Object.assign(new Error(error.message || "AI result failed validation."), { status: 502 }); }
 }
 
 export function createServer({ fetchImpl = fetch } = {}) {
