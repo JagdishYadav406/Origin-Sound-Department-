@@ -1,29 +1,34 @@
 # OSD Web Edition
 
-This is the standalone browser edition of Origin Sound Department. It processes user-selected audio locally in a modern browser; source media is not uploaded to an OSD server.
+Origin Sound Department is a self-contained browser-based soundtrack workspace. User-selected media is processed locally by the browser for ordinary editing and rendering. AI analysis is a separate, optional service request that sends only the media the user explicitly consents to share.
 
-## Implemented in this candidate
+## Available production tools
 
-- Dialogue, Music, SFX and Ambience tracks
-- Local mono/stereo audio import and SHA-256 fingerprints where browser support permits
-- Track gain, mute/solo, reversible three-band peaking EQ (bass 120 Hz, mid 1 kHz, treble 8 kHz), pan/stereo balance, offset, trim and fades; master-bus trim
-- EQ is applied non-destructively to render-time working copies; neutral 0 dB settings preserve the original decoded samples
-- Stereo WAV rendering, pre-render peak checks, WAV/PCM integrity checks and rendered preview
-- Project JSON save/load and session evidence report; mute/solo settings are stored in project schema v6 and older v1–v5 projects default them to off
-- Conservative memory preflight before full compressed-file read/decode and post-decode estimate
-- Explicit QC and delivery limitations
+- Four source tracks: Dialogue, Music, SFX and Ambience.
+- Local audio import, browser decoding and SHA-256 source fingerprints where supported.
+- Track gain, mute/solo, three-band peaking EQ, high-pass filtering, linked-stereo compression, pan/balance, start offset, trim and fades.
+- Dialogue starting presets (Natural Voice, Reduce Low Rumble, Clarity, More Dynamic Control, Reset) that set editable parameters; they are not noise removal or quality guarantees.
+- Dialogue-aware music ducking using an envelope follower; it is not speech recognition.
+- Master-bus gain trim and a pre-render full-scale/clipping gate. There is no automatic limiter or loudness normalization.
+- Stereo PCM16 WAV rendering, browser preview, explicit WAV download, pre-render sample peak scan, serialized PCM/header/frame-count checks and render-staleness protection.
+- Project JSON save/load, source identity checks where supported, and a session QC/evidence report.
+- AI Sound Director: optional service-backed sampled-frame visual analysis and separate consented audio-aware analysis (WAV/MP3 up to 90 seconds), plus a combined time-coded proposal plan when the editor confirms both inputs start at 00:00.
+- Cue-plan JSON/CSV export, time-coded video study notes, and a session-local sound library with candidate audition and text/tag matching.
+- Experimental reference-video soundtrack capture in supported browsers. It runs in real time, may re-encode audio lossily, and is not bit-perfect.
 
-## Known gaps
+## Important limits
 
-- No dialogue separation, compressor, limiter, Foley generation or AI sound design
-- No LUFS integrated loudness or standards-compliant true-peak measurement
-- No direct video muxing; export the WAV and assemble it in a video editor
-- Only mono/stereo sources are accepted
-- Browser download completion and actual device playback are not independently verified
-- Runtime testing is still required, especially on the Samsung Galaxy A20
+- AI analysis requires a separately configured and reachable OSD AI service plus a valid service token. Without it, no model analysis occurs. Provider credentials belong on the server, not in this static page.
+- Visual analysis samples frames rather than understanding every moment of continuous motion. Audio analysis is a separate upload, requires consent, and is bounded to 90 seconds.
+- Sound-library matching is based on cue text, filenames and tags—not audio embeddings, guaranteed creative fit, licensing validation or copyright clearance.
+- The mixer does not automatically apply AI suggestions. Review and audition every candidate.
+- The renderer does not currently mux the final soundtrack into the original video. Export the WAV and assemble it with a video editor.
+- No dedicated noise-reduction, dereverberation, source separation, clipping repair, Foley synthesis, LUFS integrated loudness measurement, or standards-compliant true-peak meter is claimed.
+- Stereo WAV export, browser downloads and video capture depend on browser capabilities and available memory. Download completion and playback on the user's device are not independently verified.
+- The web static/Chromium test suite is not a substitute for testing on the Samsung Galaxy A20 or another target device.
 
-## Run
+## Run locally or host
 
-Open `index.html` in a modern browser, or deploy this directory as a static site. Keep original media and project JSON backups separately.
+Open `index.html` in a compatible modern browser, or host the `web/` directory as a static site over HTTPS. The core editor does not need a server for local audio processing. AI Sound Director does need a configured backend service. Keep original media and project JSON backups separately.
 
 This is a reconstructed functional continuation, not a claim that unrecovered historical OSD source has been restored exactly.
