@@ -411,14 +411,14 @@ $('analyzeAudioAI').addEventListener('click',async()=>{
  finally{if(objectUrl)URL.revokeObjectURL(objectUrl);if(aiAnalysisTimer)clearTimeout(aiAnalysisTimer);aiAnalysisTimer=null;aiAnalysisController=null;aiAnalyzing=false;$('cancelVideoAI').disabled=true;$('analyzeAudioAI').disabled=!$('aiAudioFile').files?.[0]||!$('aiAudioConsent').checked;updateAIAnalyzeButton();updateCombineAIButton()}
 });
 $('testAIConnection').addEventListener('click',async()=>{
- const base=$('aiServiceUrl').value.trim().replace(/\\/+$/,'');
+ const base=$('aiServiceUrl').value.trim().replace(/\/+$/,'');
  let endpoint;
  try{endpoint=new URL(base);if(!(endpoint.protocol==='https:'||endpoint.hostname==='localhost'||endpoint.hostname==='127.0.0.1'))throw new Error('Use HTTPS for a remote AI service.');}
  catch(err){$('aiConnectionStatus').textContent='Connection not tested: '+err.message;log('AI_CONNECTION_TEST_REJECTED invalid_base_url=true');return}
  const button=$('testAIConnection');button.disabled=true;$('aiConnectionStatus').textContent='Checking service health and configuration…';
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
  try{
-  const response=await fetch(endpoint.href.replace(/\\/+$/,'')+'/v1/health',{method:'GET',cache:'no-store',signal:controller.signal});
+  const response=await fetch(endpoint.href.replace(/\/+$/,'')+'/v1/health',{method:'GET',cache:'no-store',signal:controller.signal});
   let data;try{data=await response.json()}catch(_){throw new Error('Service returned a non-JSON health response.')}
   if(!response.ok||data.status!=='ok')throw new Error(data.error||'Health check failed ('+response.status+').');
   if(!data.configured){$('aiConnectionStatus').textContent='Service reachable, but server secrets are not configured. Set OPENAI_API_KEY and OSD_SERVICE_TOKEN on the hosting service.';log('AI_CONNECTION_TEST configured=false');return}
