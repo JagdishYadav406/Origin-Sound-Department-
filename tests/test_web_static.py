@@ -103,6 +103,16 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("not a verified sonic match", self.inline_script)
         self.assertIn("does not identify speech, emotions, or sound events", self.html)
 
+    def test_sound_library_candidates_can_be_explicitly_loaded_through_safe_track_import(self):
+        self.assertIn("Load candidate into selected track", self.inline_script)
+        self.assertIn("Target mix track for", self.inline_script)
+        self.assertIn("new DataTransfer()", self.inline_script)
+        self.assertIn("input.dispatchEvent(new Event('change',{bubbles:true}))", self.inline_script)
+        self.assertIn("The current source will remain if the candidate fails validation.", self.inline_script)
+        self.assertIn("SOUND_LIBRARY_CANDIDATE_SENT_TO_IMPORT", self.inline_script)
+        self.assertIn("auto_mixed=false", self.inline_script)
+        self.assertIn("not yet a confirmed mix placement", self.inline_script)
+
     def test_project_recovery_controls_and_local_media_policy_exist(self):
         for element_id in ("saveProject", "loadProjectButton", "exportReport", "loadProjectFile"):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
