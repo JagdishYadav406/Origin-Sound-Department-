@@ -241,6 +241,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("prefers-reduced-motion:reduce", self.html)
 
 
+    def test_autonomous_edit_draft_is_explicit_non_destructive_and_bounded(self):
+        for element_id in ("autonomousEdit", "buildAutonomousEdit", "applyAutonomousEdit", "exportAutonomousEdit", "clearAutonomousEdit"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn("OSD-AUTONOMOUS-EDIT-PACKAGE", self.inline_script)
+        self.assertIn("DRAFT_NOT_EXECUTED", self.inline_script)
+        self.assertIn("time range outside selected video", self.inline_script)
+        self.assertIn("AUTONOMOUS_EDIT_CUES_STAGED", self.inline_script)
+        self.assertIn("source_media_modified=false mix_settings_modified=false", self.inline_script)
+        self.assertIn("scene-change-aware", self.html.lower())
+        self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
+
 if __name__ == "__main__":
     unittest.main()
     def test_original_source_previews_are_separate_from_rendered_mix(self):
