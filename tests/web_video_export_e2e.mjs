@@ -134,6 +134,36 @@ try {
   await page.waitForFunction(() => (document.querySelector("#videoMixExportStatus")?.textContent || "").includes("WebM prepared"), null, { timeout: 5000 });
   const afterMute = await page.locator("#referenceVideoPlayer").evaluate(v => v.muted);
   assert.equal(afterMute, beforeMute, "export cleanup must restore source video mute state");
+  // Exercise a real cut export: split the source at 0.5 s, remove the first
+  // interval, and verify the new WebM contains both video and sliced mix audio.
+  await page.locator("#referenceVideoPlayer").evaluate(v => { v.currentTime = 0.5; });
+  await page.waitForFunction(() => !document.querySelector("#splitPictureAtPlayhead")?.disabled, null, { timeout: 5000 });
+  await page.locator("#splitPictureAtPlayhead").click();
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "splitting at playhead should create two retained intervals");
+  await page.locator("#pictureTimelineList .cue-row").first().getByRole("button", { name: /Remove interval/ }).click();
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "removing interval should leave the selected output segment");
+  const cutDownloadPromise = page.waitForEvent("download", { timeout: 15000 });
+  await page.locator("#exportPictureEdits").click();
+  const cutDownload = await cutDownloadPromise;
+  assert.match(cutDownload.suggestedFilename(), /-OSD-picture-edits\.webm$/, "picture edit should export as a separate file");
+  const cutStream = await cutDownload.createReadStream();
+  const cutParts = [];
+  for await (const part of cutStream) cutParts.push(part);
+  const cutOutput = Buffer.concat(cutParts);
+  assert.ok(cutOutput.length > 1000, "edited WebM should contain encoded output");
+  const cutTracks = await page.evaluate(async ({ base64 }) => {
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const video = document.createElement("video"); video.muted = true; video.src = URL.createObjectURL(new Blob([bytes], { type: "video/webm" }));
+    document.body.appendChild(video);
+    await new Promise((resolve, reject) => { video.addEventListener("loadedmetadata", resolve, { once: true }); video.addEventListener("error", () => reject(new Error("Cut WebM failed to decode")), { once: true }); video.load(); });
+    const stream = video.captureStream(); await video.play(); await new Promise(resolve => setTimeout(resolve, 150));
+    const result = { video: stream.getVideoTracks().length, audio: stream.getAudioTracks().length, duration: video.duration };
+    video.pause(); stream.getTracks().forEach(t => t.stop()); URL.revokeObjectURL(video.src); video.remove(); return result;
+  }, { base64: cutOutput.toString("base64") });
+  assert.ok(cutTracks.video >= 1 && cutTracks.audio >= 1, "cut WebM must contain both picture and matching mix audio");
+  assert.ok(cutTracks.duration < loadedDuration - 0.2 && cutTracks.duration > loadedDuration - 0.8, "cut WebM duration should reflect the removed source interval: " + JSON.stringify(cutTracks));
+  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Edited WebM prepared"), null, { timeout: 5000 });
+
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({ status: "PASS", realGeneratedVideoFixture: "PASS", realWavRender: "PASS", explicitWebmDownload: "PASS", exportedWebmMetadataAndDecode: "PASS", outputContainsVideoAndAudioTracks: "PASS", outputDurationChecked: "PASS", sourceMuteStateRestored: "PASS", outputBytes: output.length, fixtureDurationSeconds: fixture.duration }, null, 2));
 } finally {
