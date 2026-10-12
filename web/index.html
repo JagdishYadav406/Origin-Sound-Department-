@@ -333,8 +333,8 @@ async function sampleVideoFrames(token){
   if(!player.paused)player.pause();
   for(let i=0;i<count;i++){
    if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
-   const t=count===1?Math.min(duration*.5,Math.max(0,duration-.02)):Math.min(duration-.02,Math.max(0,(duration-.04)*i/(count-1)));
-   $('aiAnalysisStatus').textContent=`Sampling local video frame ${i+1} of ${count} at ${t.toFixed(2)} seconds. No frame has been sent yet.`;
+   const t=Math.min(duration-.02,Math.max(0,duration*(i+.5)/count));
+   $('aiAnalysisStatus').textContent=`Sampling frame ${i+1} of ${count} near the center of time segment ${i+1}, at ${t.toFixed(2)} seconds. Samples are sparse and can miss short events; no frame has been sent yet.`;
    await waitForVideoSeek(player,t,token);
    if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
    ctx.drawImage(player,0,0,canvas.width,canvas.height);
