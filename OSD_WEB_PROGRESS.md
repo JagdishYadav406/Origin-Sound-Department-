@@ -239,3 +239,14 @@
 - Refined visual analysis by comparing 12 low-resolution scouting frames locally and selecting up to 8 keyframes using visual-difference scores plus timeline anchors for the consented AI request. Only selected keyframes are sent; the original video and its soundtrack are not uploaded by visual analysis.
 - Scope limit: autonomous picture cuts, transitions, reframing, and color grading are not implemented. The JSON package is a structured edit decision plan, not proof that picture edits were executed. WebM video+mix export remains experimental and physical Galaxy A20 validation is still outstanding.
 - Main deployment after this merge must be checked separately; CI passing is not itself confirmation of the public Pages deployment or real-device behavior.
+
+
+## 2026-10-12 — Segmented picture editing with matching soundtrack cuts merged
+
+- Merged PR #65 at `5d49856ed921b8177073fca796d81bef0e804b97`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/65
+- Verification passed on the exact PR head `c8a435cbd2b3a6759c93424d29a3e1845b49ed82`, run `38219245256`: static safety tests, inline JavaScript syntax, Chromium audio import/render/QC/project tests, and generated-media WebM tests for both full video+mix export and a shortened segmented edit. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38219245256
+- Added a picture timeline that can split at the playhead, use AI scene timestamps as suggested markers, remove unwanted intervals, and reset to the full source. Retained video intervals are concatenated into a new WebM while the exact matching source-time slices are concatenated from the current rendered WAV.
+- Source video and WAV are never overwritten. Export validates interval bounds/order, video/mix duration alignment, memory estimates, output duration, and a 500 MiB ceiling. Cancel discards partial output and cleanup stops recorder/video/audio streams.
+- E2E test verifies the exported WebM decodes to valid video metadata and its audio payload decodes, and that removing an interval shortens output duration. This test does not establish frame-accurate A/V sync across all browsers/devices.
+- Remaining limitations: no transitions/crossfades, optical-flow smoothing, color grading, reframing, or phone hardware acceptance. WebM is real-time re-encoded and codec/device dependent; inspect playback, sync, and sound continuity. Galaxy A20 physical-device validation remains outstanding.
+- Main deployment after this merge must be checked separately.
