@@ -56,6 +56,10 @@ try {
 
   const sourceState = await page.locator("#state-dialogue").innerText();
   assert.match(sourceState, /^Ready\b/, "source import did not succeed: " + sourceState);
+  assert.equal(await page.locator("#original-preview-dialogue").isVisible(), true, "unchanged original preview must appear after import");
+  assert.match(await page.locator("#original-preview-dialogue").innerText(), /Original audio — unchanged source/);
+  const originalSourceUrl = await page.locator("#player-dialogue").getAttribute("src");
+  assert.ok(originalSourceUrl?.startsWith("blob:"), "original preview must use the selected source file");
   await page.waitForFunction(() => !document.querySelector("#render")?.disabled, null, { timeout: 5000 });
   assert.match(await page.locator("#log").innerText(), /SOURCE_MEMORY_PREFLIGHT/);
   assert.match(await page.locator("#log").innerText(), /SOURCE_MEMORY_POST_DECODE_CHECK.*passed=true/);
@@ -69,6 +73,10 @@ try {
   const renderMessage = await page.locator("#message").innerText();
   assert.match(renderMessage, /^Stereo WAV created\b/, "render did not succeed: " + renderMessage);
   assert.equal(await page.locator("#mixPreview").isVisible(), true);
+  assert.match(await page.locator("#mixPreview").innerText(), /Edited audio — rendered mix/, "rendered output must be labelled separately");
+  const firstEditedUrl = await page.locator("#mixPlayer").getAttribute("src");
+  assert.ok(firstEditedUrl?.startsWith("blob:") && firstEditedUrl !== originalSourceUrl, "edited mix must have a distinct local URL from the original source");
+  assert.equal(await page.locator("#downloadMix").isEnabled(), true, "current edited mix must be downloadable");
   assert.match(await page.locator("#mixPreviewStatus").innerText(), /CURRENT$/, "successful render should be marked current");
   await page.locator("#masterGain").evaluate(el => {
     el.value = String(Number(el.value) - 1);
