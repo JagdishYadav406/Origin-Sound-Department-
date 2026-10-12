@@ -150,6 +150,10 @@ try {
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "splitting at playhead should create two retained intervals");
   await page.locator("#pictureTimelineList .cue-row").first().getByRole("button", { name: /Remove picture interval/ }).click();
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "removing interval should leave the selected output segment");
+  await page.locator("#undoPictureEdit").click();
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "undo should restore the removed interval");
+  await page.locator("#pictureTimelineList .cue-row").first().getByRole("button", { name: /Remove picture interval/ }).click();
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "reapplying the removal should leave one output interval");
   const cutDownloadPromise = page.waitForEvent("download", { timeout: 15000 });
   await page.locator("#exportPictureEdits").click();
   const cutDownload = await cutDownloadPromise;
