@@ -2,7 +2,7 @@ name: OSD Web Edition — verify and deploy
 on:
   pull_request:
     branches: [main]
-    paths: ["web/**", "tests/test_web_static.py", "tests/web_browser_smoke.mjs", ".github/workflows/osd-web-pages.yml"]
+    paths: ["web/**", "tests/test_web_static.py", "tests/web_browser_smoke.mjs", "tests/web_video_export_e2e.mjs", ".github/workflows/osd-web-pages.yml"]
   push:
     branches: [main]
     paths: ["web/**", "tests/test_web_static.py", "tests/web_browser_smoke.mjs", ".github/workflows/osd-web-pages.yml"]
@@ -72,6 +72,9 @@ jobs:
 
       - name: Run Chromium audio import, render, QC and project smoke test
         run: node tests/web_browser_smoke.mjs
+
+      - name: Run real-media video plus mix export end-to-end test
+        run: node tests/web_video_export_e2e.mjs
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
