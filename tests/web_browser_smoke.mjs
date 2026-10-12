@@ -386,7 +386,11 @@ try {
   assert.equal(project.format, "OSD-WEB-PROJECT");
   assert.equal(project.projectVersion, 12);
   assert.equal(project.timelineClips?.length, 0, "project should record an empty clip manifest when no extra clips are loaded");
-  assert.deepEqual(project.pictureTimeline, { source: null, segments: [] }, "project must include an explicit empty picture timeline when no video is selected");
+  assert.deepEqual(project.pictureTimeline.segments, [], "project should preserve an empty picture timeline when no intervals are selected");
+  assert.equal(project.pictureTimeline.source?.name, project.videoReference?.name, "picture timeline source should match the saved video reference");
+  assert.equal(project.pictureTimeline.source?.size, project.videoReference?.size, "picture timeline should preserve source size metadata");
+  assert.equal(project.pictureTimeline.source?.lastModified, project.videoReference?.lastModified, "picture timeline should preserve source modification metadata");
+  assert.equal(project.pictureTimeline.source?.durationSeconds, project.videoReference?.durationSeconds, "picture timeline should preserve source duration metadata");
   assert.equal(project.master.duckDepthDb, 0, 'dialogue ducking must default to off');
   assert.equal(project.master.duckThresholdDb, -30, 'project must preserve the ducking threshold');
   assert.equal(project.settings.dialogue.hpf, 80, "project must preserve the dialogue high-pass filter");
