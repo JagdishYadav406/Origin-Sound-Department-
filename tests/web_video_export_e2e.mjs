@@ -76,7 +76,7 @@ try {
   assert.ok(fixture.width > 0 && fixture.height > 0, "fixture video must decode to real dimensions");
 
   await page.locator("#referenceVideo").setInputFiles({
-    name: "osd-generated-video-fixture.webm", mimeType: "video/webm",
+    name: "osd-generated-video-fixture.webm", mimeType: "video/webm", lastModified: 1700000000000,
     buffer: Buffer.from(fixture.base64, "base64")
   });
   await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Video metadata read by this browser"), null, { timeout: 15000 });
@@ -183,6 +183,36 @@ try {
   assert.ok(cutTracks.duration < loadedDuration - 0.2 && cutTracks.duration > loadedDuration - 0.8, "cut WebM duration should reflect the removed source interval: " + JSON.stringify(cutTracks));
   await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Edited WebM prepared"), null, { timeout: 5000 });
 
+  // Exercise the project persistence contract: intervals should survive save/load,
+  // but only restore after the same reference-video metadata is selected again.
+  const projectDownloadPromise = page.waitForEvent("download", { timeout: 10000 });
+  await page.locator("#saveProject").click();
+  const projectDownload = await projectDownloadPromise;
+  assert.match(projectDownload.suggestedFilename(), /OSD-project-.*\.json$/, "project save should produce a JSON file");
+  const projectStream = await projectDownload.createReadStream();
+  const projectParts = [];
+  for await (const part of projectStream) projectParts.push(part);
+  const projectBytes = Buffer.concat(projectParts);
+  const savedProject = JSON.parse(projectBytes.toString("utf8"));
+  assert.equal(savedProject.projectVersion, 12, "picture timeline project schema should be v12");
+  assert.equal(savedProject.pictureTimeline.segments.length, 1, "saved project should preserve the selected picture interval");
+  assert.ok(Math.abs(savedProject.pictureTimeline.segments[0].start - 0.5) < 0.15, "saved picture interval should preserve its cut start");
+  assert.ok(Math.abs(savedProject.pictureTimeline.segments[0].end - loadedDuration) < 0.15, "saved picture interval should preserve its cut end");
+  await page.locator("#loadProjectFile").setInputFiles({ name: "osd-roundtrip-project.json", mimeType: "application/json", buffer: projectBytes });
+  await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Re-select it to preview"), null, { timeout: 5000 });
+  await page.locator("#referenceVideo").setInputFiles({
+    name: "osd-generated-video-fixture.webm", mimeType: "video/webm", lastModified: 1700000000000,
+    buffer: Buffer.from(fixture.base64, "base64")
+  });
+  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline restored"), null, { timeout: 10000 });
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "matching source metadata should restore the saved interval");
+  const mismatchedSource = Buffer.from(fixture.base64, "base64");
+  await page.locator("#referenceVideo").setInputFiles({
+    name: "different-video-name.webm", mimeType: "video/webm", lastModified: 1700000000000,
+    buffer: mismatchedSource
+  });
+  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline not restored"), null, { timeout: 10000 });
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "different source metadata must not inherit old picture cuts");
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({ status: "PASS", realGeneratedVideoFixture: "PASS", realWavRender: "PASS", explicitWebmDownload: "PASS", exportedWebmMetadataAndDecode: "PASS", outputContainsVideoAndAudioTracks: "PASS", outputDurationChecked: "PASS", sourceMuteStateRestored: "PASS", outputBytes: output.length, fixtureDurationSeconds: fixture.duration }, null, 2));
 } finally {
