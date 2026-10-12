@@ -248,6 +248,9 @@ try {
   assert.match(renderMessage, /^Stereo WAV created\b/, "render did not succeed: " + renderMessage);
   assert.equal(await page.locator("#mixPreview").isVisible(), true);
   assert.match(await page.locator("#mixPreviewStatus").innerText(), /CURRENT$/, "successful render should be marked current");
+  assert.equal(await page.locator("#exportVideoMix").isDisabled(), true, "video export must remain disabled when video and mix durations differ");
+  await page.waitForFunction(() => (document.querySelector("#videoMixExportStatus")?.textContent || "").includes("differ by"), null, { timeout: 5000 });
+  assert.match(await page.locator("#videoMixExportStatus").innerText(), /Blocked: video and mix differ/, "duration mismatch must be explained, not silently trimmed or padded");
   await page.locator("#masterGain").evaluate(el => {
     el.value = String(Number(el.value) - 1);
     el.dispatchEvent(new Event("input", { bubbles: true }));
