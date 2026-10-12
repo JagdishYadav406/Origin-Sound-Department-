@@ -138,3 +138,7 @@
 - Added static assertions for all four source previews and browser-smoke assertions that the original preview appears after import and the edited mix has a distinct local Blob URL and enabled download after a successful render.
 - Candidate commits: `1b5963ba52278e7a34bd05e6f17b0fbf4dfa32db` (UI), `a2a55c60537f2f817f829e8901aa1b6fa28a382e` (static tests), `72af7a56f9250f9306c7f4983bd962d2f65571ab` (browser smoke tests).
 - Validation status: source edits are committed on the isolated branch. CI has not yet confirmed the candidate; do not call it verified or merged until the checks pass. Physical Galaxy A20 testing remains outstanding.
+
+
+- CI run `38199251824`: static safety tests and inline JavaScript syntax passed. Chromium reached the preview checks but failed an existing assertion expecting the preview container's CSS class to remain empty; the UI had added a nonessential class. Removed that class to preserve the existing state contract. This was a test failure, so the candidate remains unverified until a fresh run passes.
+- Follow-up source commit: `280d4218cc2edaa036038ecbbf2014a80c327ee5`.
