@@ -270,6 +270,11 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("500*MiB", self.inline_script)
         self.assertIn("job.audioStream?.getTracks().forEach(t=>t.stop())", self.inline_script)
         self.assertIn("source_unchanged=true", self.inline_script)
+        self.assertIn("pictureTimeline:{source:", self.inline_script)
+        self.assertIn("PICTURE_TIMELINE_RESTORED", self.inline_script)
+        self.assertIn("PICTURE_TIMELINE_RESTORE_BLOCKED", self.inline_script)
+        self.assertIn("importedPicture.segments.length>200", self.inline_script)
+        self.assertIn("Picture intervals must be sorted and non-overlapping", self.inline_script)
 
 if __name__ == "__main__":
     unittest.main()
