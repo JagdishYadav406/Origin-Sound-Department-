@@ -193,8 +193,7 @@ try {
   assert.ok(cutTracks.duration < loadedDuration - 0.2 && cutTracks.duration > loadedDuration - 0.8, "cut WebM duration should reflect the removed source interval: " + JSON.stringify(cutTracks));
   await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Edited WebM prepared"), null, { timeout: 5000 });
 
-  // Exercise the project persistence contract: intervals should survive save/load,
-  // but only restore after the same reference-video metadata is selected again.
+  // Exercise project persistence: the content fingerprint, not filename/mtime, governs restoration.
   const projectDownloadPromise = page.waitForEvent("download", { timeout: 10000 });
   await page.locator("#saveProject").click();
   const projectDownload = await projectDownloadPromise;
@@ -204,7 +203,9 @@ try {
   for await (const part of projectStream) projectParts.push(part);
   const projectBytes = Buffer.concat(projectParts);
   const savedProject = JSON.parse(projectBytes.toString("utf8"));
-  assert.equal(savedProject.projectVersion, 12, "picture timeline project schema should be v12");
+  assert.equal(savedProject.projectVersion, 13, "picture timeline project schema should be v13");
+  assert.match(savedProject.pictureTimeline.source?.fingerprint || "", /^[a-f0-9]{64}$/i, "saved picture timeline must include a content fingerprint");
+  assert.equal(savedProject.pictureTimeline.source?.fingerprintAlgorithm, "OSD-CHUNKED-SHA256-V1", "saved fingerprint algorithm must be explicit");
   assert.equal(savedProject.pictureTimeline.segments.length, 1, "saved project should preserve the selected picture interval");
   assert.deepEqual(
     { name: savedProject.pictureTimeline.source?.name, size: savedProject.pictureTimeline.source?.size, lastModified: savedProject.pictureTimeline.source?.lastModified },
@@ -221,7 +222,7 @@ try {
     const video = document.querySelector("#referenceVideoPlayer");
     return video && video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0;
   }, null, { timeout: 10000 });
-  await page.waitForFunction(() => (document.querySelector("#log")?.textContent || "").includes("PICTURE_TIMELINE_RESTORED identity=name_size_mtime_duration"), null, { timeout: 10000 }).catch(async () => {
+  await page.waitForFunction(() => (document.querySelector("#log")?.textContent || "").includes("PICTURE_TIMELINE_RESTORED identity=content_fingerprint algorithm=OSD-CHUNKED-SHA256-V1"), null, { timeout: 10000 }).catch(async () => {
     const diagnostic = await page.evaluate(() => ({
       status: document.querySelector("#pictureTimelineStatus")?.textContent || "",
       state: document.querySelector("#videoReferenceState")?.textContent || "",
@@ -230,19 +231,30 @@ try {
     }));
     throw new Error("Matching source metadata did not restore the saved picture timeline: " + JSON.stringify(diagnostic));
   });
-  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "matching source metadata should restore the saved interval");
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "matching video content should restore the saved interval");
+  // The same bytes under a different filename and mtime must still match by content.
+  await page.locator("#loadProjectFile").setInputFiles({ name: "osd-roundtrip-project.json", mimeType: "application/json", buffer: projectBytes });
+  await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Re-select it to preview"), null, { timeout: 5000 });
+  await page.locator("#referenceVideo").setInputFiles([]);
+  await page.locator("#referenceVideo").setInputFiles({name:"renamed-same-content.webm",mimeType:"video/webm",lastModified:1700000000000,buffer:Buffer.from(fixture.base64,"base64")});
+  await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Video metadata read by this browser"), null, { timeout: 10000 });
+  await page.waitForFunction(() => (document.querySelector("#log")?.textContent || "").includes("PICTURE_TIMELINE_RESTORED identity=content_fingerprint algorithm=OSD-CHUNKED-SHA256-V1"), null, { timeout: 10000 });
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "renamed identical content should restore the saved interval");
   // Reload the saved project so a pending restore decision exists for the
   // mismatched-source case. A successful restore consumes that pending decision.
   await page.locator("#loadProjectFile").setInputFiles({ name: "osd-roundtrip-project.json", mimeType: "application/json", buffer: projectBytes });
   await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Re-select it to preview"), null, { timeout: 5000 });
   const mismatchedSource = Buffer.from(fixture.base64, "base64");
+  // Change bytes while preserving filename, byte count, and mtime. Alter a payload byte
+  // rather than container length so metadata-based identity would be fooled.
+  mismatchedSource[Math.floor(mismatchedSource.length * 0.55)] ^= 0x01;
   await page.locator("#referenceVideo").setInputFiles({
-    name: "different-video-name.webm", mimeType: "video/webm", lastModified: 1700000000000,
+    name: "osd-generated-video-fixture.webm", mimeType: "video/webm", lastModified: fixtureLastModified,
     buffer: mismatchedSource
   });
   await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Video metadata read by this browser"), null, { timeout: 10000 });
   await page.waitForFunction(() => (document.querySelector("#log")?.textContent || "").includes("PICTURE_TIMELINE_RESTORE_BLOCKED source_identity_mismatch=true"), null, { timeout: 10000 });
-  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "different source metadata must not inherit old picture cuts");
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "different content with matching basic metadata must not inherit old picture cuts");
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({ status: "PASS", realGeneratedVideoFixture: "PASS", realWavRender: "PASS", explicitWebmDownload: "PASS", exportedWebmMetadataAndDecode: "PASS", outputContainsVideoAndAudioTracks: "PASS", outputDurationChecked: "PASS", sourceMuteStateRestored: "PASS", outputBytes: output.length, fixtureDurationSeconds: fixture.duration }, null, 2));
 } finally {
