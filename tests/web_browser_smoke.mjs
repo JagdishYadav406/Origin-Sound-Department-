@@ -212,6 +212,7 @@ try {
   await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Cue staging complete"), null, { timeout: 5000 });
   assert.match(await page.locator("#videoCueList").innerText(), /restrained musical bed/);
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "staging cue notes must not change mix settings");
+  await page.locator("#clearVideoCues").click(); // Keep later project round-trip assertions isolated from this feature test.
 
 
   // Verify the separate, explicitly consented audio-aware request path as well.
