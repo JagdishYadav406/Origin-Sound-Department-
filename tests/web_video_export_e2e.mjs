@@ -136,6 +136,7 @@ try {
   assert.equal(afterMute, beforeMute, "export cleanup must restore source video mute state");
   // Exercise a real cut export: split the source at 0.5 s, remove the first
   // interval, and verify the new WebM contains both video and sliced mix audio.
+  await page.locator("#buildPictureTimeline").click();
   await page.locator("#referenceVideoPlayer").evaluate(v => { v.currentTime = 0.5; });
   await page.waitForFunction(() => !document.querySelector("#splitPictureAtPlayhead")?.disabled, null, { timeout: 5000 });
   await page.locator("#splitPictureAtPlayhead").click();
