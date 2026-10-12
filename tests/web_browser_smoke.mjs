@@ -384,7 +384,7 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 12);
+  assert.equal(project.projectVersion, 13);
   assert.equal(project.timelineClips?.length, 0, "project should record an empty clip manifest when no extra clips are loaded");
   assert.deepEqual(project.pictureTimeline.segments, [], "project should preserve an empty picture timeline when no intervals are selected");
   assert.equal(project.pictureTimeline.source?.name, project.videoReference?.name, "picture timeline source should match the saved video reference");
