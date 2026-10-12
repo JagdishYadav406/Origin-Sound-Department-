@@ -142,3 +142,12 @@
 
 - CI run `38199251824`: static safety tests and inline JavaScript syntax passed. Chromium reached the preview checks but failed an existing assertion expecting the preview container's CSS class to remain empty; the UI had added a nonessential class. Removed that class to preserve the existing state contract. This was a test failure, so the candidate remains unverified until a fresh run passes.
 - Follow-up source commit: `280d4218cc2edaa036038ecbbf2014a80c327ee5`.
+
+
+## 2026-10-12 — Original and edited audio separation merged
+
+- PR #55 merged into `main`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/55
+- Merge commit: `98a3432046f29c18f3b1aa9c0c1d5b1fbf26d58c`.
+- The web page now has separate, explicitly labelled original-source players for Dialogue, Music, SFX, and Ambience, plus a separately labelled rendered-mix player and WAV download.
+- The PR branch's web verification workflow passed, including Chromium browser smoke tests, at run https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38199350054. The merged-main deployment workflow is running separately and must finish before claiming the public Pages deployment is updated.
+- Automated browser test checks that the original preview is shown after import, render uses a distinct Blob URL, and the original preview URL remains unchanged. Device testing on the Samsung Galaxy A20 has not been performed here.
