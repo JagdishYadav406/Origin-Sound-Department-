@@ -195,6 +195,10 @@ try {
   assert.ok(observedVisualRequest.frames.length >= 1 && observedVisualRequest.frames.length <= 8, "the frontend must send a bounded sample of at most eight frames");
   assert.ok(observedVisualRequest.frames.every(frame => /^data:image\/jpeg;base64,/.test(frame.imageDataUrl)), "frames must be resized JPEG data URLs");
   assert.ok(observedVisualRequest.frames.every(frame => Number.isFinite(frame.timestampSeconds) && frame.timestampSeconds >= 0 && frame.timestampSeconds <= observedVisualRequest.durationSeconds), "frame timestamps must stay within the selected video duration");
+  const sampledTimes = observedVisualRequest.frames.map(frame => frame.timestampSeconds);
+  assert.ok(sampledTimes[0] > 0 && sampledTimes[sampledTimes.length - 1] < observedVisualRequest.durationSeconds, "visual sampling should target segment interiors rather than only video endpoints");
+  assert.deepEqual(sampledTimes, [...sampledTimes].sort((a, b) => a - b), "sampled frame timestamps must be chronological");
+  assert.equal(new Set(sampledTimes).size, sampledTimes.length, "short clips must not produce duplicate frame timestamps");
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Mock integration: calm opening/);
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /restrained musical bed/);
   assert.equal(await page.locator("#exportAIPlanJSON").isEnabled(), true);
