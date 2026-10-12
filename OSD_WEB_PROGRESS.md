@@ -182,3 +182,13 @@
 - Exact PR-head web verification passed, including static safety checks, JavaScript syntax, Chromium install, and the Chromium audio import/render/QC/project smoke test: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38212938642
 - Merge triggered main web verification/deploy run `38213207872`: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38213207872. At checkpoint time, static safety and JavaScript syntax passed; Chromium installation/runtime checks were still in progress. Deployment for this commit is not yet confirmed.
 - Next: finish merged-main verification/deployment; then prioritize real Galaxy A20 browser acceptance and a design/test plan for direct video muxing. Current renderer still exports WAV separately; do not claim source-video mux/export or real AI provider analysis as implemented.
+
+
+## 2026-10-12 — Mobile-width layout smoke test merged
+
+- PR #58 merged to main as `75b54c7df04c9c3900c6d5c6672f1198ebc62482`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/58
+- Added a 360×800 Chromium viewport regression assertion: Render and explicit Download WAV controls must be visible and document-level horizontal overflow must not exceed the small tolerance. The test is a viewport simulation, not physical Galaxy A20 acceptance.
+- PR verification run `38213380261` completed successfully: static safety, JavaScript syntax, browser dependencies, Chromium, and the full browser smoke suite all passed. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38213380261
+- Merge triggered main verification/deploy run `38213532023` for exact commit `75b54c7df04c9c3900c6d5c6672f1198ebc62482`. Static safety and JS syntax have passed; browser dependencies are installing. Main-commit deployment is not yet confirmed.
+- Next: verify merged-main CI/deployment; then plan a separate opt-in experimental video mux/export feature with explicit warnings about codec support, real-time capture, and possible lossy re-encoding. Do not alter the original source video. Require tests for cancellation/failure, audio/video duration alignment, and output integrity before treating it as usable.
+- Galaxy A20 real-device compatibility, real AI provider operation, and direct final video export remain unverified.
