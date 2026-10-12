@@ -225,6 +225,15 @@ try {
   await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Audio analysis complete"), null, { timeout: 15000 });
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Mock audio integration: speech/);
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Keep background music below the narration/);
+  assert.equal(await page.locator("#buildAutonomousEdit").isDisabled(), true, "audio-only proposals must not be aligned to the video by assumption");
+  await page.locator("#aiTimelineAligned").check();
+  assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "audio-only draft requires explicit shared-start confirmation");
+  await page.locator("#buildAutonomousEdit").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Draft built"), null, { timeout: 5000 });
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /Keep background music below the narration/);
+  await page.locator("#aiTimelineAligned").uncheck();
+  assert.equal(await page.locator("#exportAutonomousEdit").isDisabled(), true, "withdrawing alignment must invalidate an audio-based draft");
+
   await page.unroute("https://mock-osd-ai.example/**");
 
 
