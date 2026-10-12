@@ -128,3 +128,17 @@
 - AI frontend/backend contract test candidate PR #54: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/54 . Branch `test/osd-ai-frontend-backend-contract`, latest test commit `6abd8649d6db3a8cb44096d1b5d29bafec4785ff`. Static safety checks and inline JS syntax passed, but Chromium smoke test failed at the wait for the video-analysis button to become enabled (15-second timeout); deployment was skipped. The earlier run had a test-script regex syntax error, since corrected. Do not merge or describe this integration test as passing until the video fixture/readiness issue is fixed and CI passes.
 - Latest observed workflow: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38158791386 (failed; details above). Android build on the same candidate passed, but does not prove installation/runtime behavior on device.
 - Next action: diagnose why the generated WebM fixture does not enable `#analyzeVideoAI` in Chromium; update the smoke test to use a deterministic supported fixture or robustly handle browser metadata readiness; rerun CI. Then proceed to live AI backend setup and the remaining production workflow. Preserve UNKNOWN states; do not infer completion from source code alone.
+
+
+## 2026-10-12 — Original-versus-edited audio separation candidate
+
+- User reported that original and edited audio still did not feel separate in the web edition.
+- Candidate branch `fix/original-vs-edited-audio` adds a clearly labelled **Original audio — unchanged source** preview container for each of Dialogue, Music, SFX, and Ambience. The source preview is revealed after that track has successfully imported and points to the selected source Blob URL; it does not point to the rendered mix.
+- The mix preview is now labelled **Edited audio — rendered mix**, explicitly states that it is separate and does not overwrite source files, and keeps the separate WAV download control.
+- Added static assertions for all four source previews and browser-smoke assertions that the original preview appears after import and the edited mix has a distinct local Blob URL and enabled download after a successful render.
+- Candidate commits: `1b5963ba52278e7a34bd05e6f17b0fbf4dfa32db` (UI), `a2a55c60537f2f817f829e8901aa1b6fa28a382e` (static tests), `72af7a56f9250f9306c7f4983bd962d2f65571ab` (browser smoke tests).
+- Validation status: source edits are committed on the isolated branch. CI has not yet confirmed the candidate; do not call it verified or merged until the checks pass. Physical Galaxy A20 testing remains outstanding.
+
+
+- CI run `38199251824`: static safety tests and inline JavaScript syntax passed. Chromium reached the preview checks but failed an existing assertion expecting the preview container's CSS class to remain empty; the UI had added a nonessential class. Removed that class to preserve the existing state contract. This was a test failure, so the candidate remains unverified until a fresh run passes.
+- Follow-up source commit: `280d4218cc2edaa036038ecbbf2014a80c327ee5`.

@@ -243,3 +243,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+    def test_original_source_previews_are_separate_from_rendered_mix(self):
+        for name in ("dialogue", "music", "sfx", "ambience"):
+            self.assertIn(f'id="original-preview-{name}"', self.html)
+            self.assertIn(f'id="player-{name}" controls preload="metadata"', self.html)
+        self.assertIn("Original audio — unchanged source", self.html)
+        self.assertIn("Edited audio — rendered mix", self.html)
+        self.assertIn('$(`original-preview-${name}`).hidden=false;', self.inline_script)
+        self.assertIn('id="mixPlayer" controls', self.html)
+        self.assertIn("source files are not overwritten", self.html)
+
