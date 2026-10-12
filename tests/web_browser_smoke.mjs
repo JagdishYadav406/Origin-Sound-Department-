@@ -251,6 +251,16 @@ try {
   assert.equal(await page.locator("#exportVideoMix").isDisabled(), true, "video export must remain disabled when video and mix durations differ");
   await page.waitForFunction(() => (document.querySelector("#videoMixExportStatus")?.textContent || "").includes("differ by"), null, { timeout: 5000 });
   assert.match(await page.locator("#videoMixExportStatus").innerText(), /Blocked: video and mix differ/, "duration mismatch must be explained, not silently trimmed or padded");
+  await page.evaluate(() => {
+    Object.defineProperty(HTMLVideoElement.prototype, "duration", { configurable: true, get: () => 601 });
+    document.querySelector("#referenceVideoPlayer").dispatchEvent(new Event("loadedmetadata"));
+  });
+  await page.waitForFunction(() => (document.querySelector("#videoMixExportStatus")?.textContent || "").includes("limited to 10 minutes"), null, { timeout: 5000 });
+  assert.equal(await page.locator("#exportVideoMix").isDisabled(), true, "video export must reject durations over the 10-minute resource guard");
+  await page.evaluate(() => {
+    Object.defineProperty(HTMLVideoElement.prototype, "duration", { configurable: true, get: () => 1.4 });
+    document.querySelector("#referenceVideoPlayer").dispatchEvent(new Event("loadedmetadata"));
+  });
   await page.locator("#masterGain").evaluate(el => {
     el.value = String(Number(el.value) - 1);
     el.dispatchEvent(new Event("input", { bubbles: true }));
