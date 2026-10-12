@@ -101,7 +101,7 @@ try {
   for await (const part of stream) parts.push(part);
   const output = Buffer.concat(parts);
   assert.ok(output.length > 1000, "exported WebM must not be empty");
-  assert.equal(output.toString("ascii", 0, 4), "\u001aE\xdf\xa3".slice(0, 4), "output should start with the WebM EBML signature");
+  assert.deepEqual([...output.subarray(0, 4)], [0x1a, 0x45, 0xdf, 0xa3], "output should start with the WebM EBML signature");
   await page.evaluate(async ({ base64 }) => {
     const binary = atob(base64); const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
     const video = document.createElement("video"); video.id = "osd-export-output-probe"; video.muted = true; video.playsInline = true;
