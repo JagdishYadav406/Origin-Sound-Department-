@@ -264,6 +264,8 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("picturePreviewEnd!==null", self.inline_script)
         self.assertIn("Remove picture interval", self.inline_script)
         self.assertIn("matching_audio_slices=true", self.inline_script)
+        self.assertIn("edgeFadeSamples", self.inline_script)
+        self.assertIn("browser seek delays can introduce sync drift", self.html)
         self.assertIn("partial_output_discarded=true", self.inline_script)
         self.assertIn("500*MiB", self.inline_script)
         self.assertIn("job.audioStream?.getTracks().forEach(t=>t.stop())", self.inline_script)
