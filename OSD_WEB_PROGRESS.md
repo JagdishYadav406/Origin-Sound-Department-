@@ -162,3 +162,13 @@
 - The merge triggered fresh main-branch web verify/deploy run https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38212590641. At checkpoint time, static safety and JavaScript syntax passed; browser dependency installation was still in progress. Deployment is not yet confirmed for this commit.
 - The parallel Android build workflow passed Python regression tests and completed release APK build, provenance verification, and artifact upload for this source SHA; this does not establish that the APK was installed or launched on the user's phone. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38212590634
 - Next: confirm merged-main web CI/deployment result; then prioritize the browser/device acceptance path and honest setup/status for optional AI service. Do not claim live deployment, physical-device compatibility, or real-provider analysis until separately verified.
+
+
+## 2026-10-12 — Follow-up: merged-main web verification and deployment confirmed
+
+- Re-checked main-branch workflow run `38212590641` for commit `04bd105e1a12d9af86ea8aa29486420824a46911`: completed successfully.
+- The `verify` job passed static safety tests, JavaScript syntax, Chromium setup, and the Chromium audio import/render/QC/project smoke suite.
+- The `deploy` job also completed successfully: GitHub Pages configuration, web artifact upload, and deployment steps all passed. This confirms the deployment workflow ran successfully for this commit; it does not establish a physical-device test or prove the live URL was independently opened from this session.
+- The previous video-metadata readiness / project-persistence test issue is now resolved in both the feature-branch browser suite and merged-main CI. The prior original-versus-edited audio preview issue was merged in PR #55 and had a passing browser smoke test.
+- Next work should address remaining functional gaps documented in `web/README.md`: establish a properly secured, optional AI service configuration; validate the real AI provider contract only with explicit user consent; and work toward a reliable video/audio export path. Do not store provider secrets in the static page. The current editor exports a separate WAV and does not mux it into the source video.
+- Still unverified: opening and operating the deployed page on the user's Samsung Galaxy A20, real provider-backed AI analysis, and final video mux/export. Preserve these as UNKNOWN until actually tested.
