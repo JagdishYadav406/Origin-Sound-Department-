@@ -151,3 +151,14 @@
 - The web page now has separate, explicitly labelled original-source players for Dialogue, Music, SFX, and Ambience, plus a separately labelled rendered-mix player and WAV download.
 - The PR branch's web verification workflow passed, including Chromium browser smoke tests, at run https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38199350054. The merged-main deployment workflow is running separately and must finish before claiming the public Pages deployment is updated.
 - Automated browser test checks that the original preview is shown after import, render uses a distinct Blob URL, and the original preview URL remains unchanged. Device testing on the Samsung Galaxy A20 has not been performed here.
+
+
+## 2026-10-12 — AI video-analysis readiness fix merged
+
+- Fixed the browser smoke-test expectations on branch `fix/ai-analysis-metadata-refresh`: the test now correctly expects the selected video's metadata to persist in the project JSON and the selected preview to remain visible, instead of incorrectly expecting no video reference.
+- Commit tested: `93343e8edcbd16b6110cc9eb3d7ad946d4e5c5cf`.
+- PR #56 merged to main as `04bd105e1a12d9af86ea8aa29486420824a46911`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/56
+- Web CI on the exact PR head passed static safety checks, JavaScript syntax, Chromium installation, and the Chromium audio import/render/QC/project smoke suite: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38212408425 . This is an automated CI pass, not physical-phone acceptance or confirmation of real AI provider access.
+- The merge triggered fresh main-branch web verify/deploy run https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38212590641. At checkpoint time, static safety and JavaScript syntax passed; browser dependency installation was still in progress. Deployment is not yet confirmed for this commit.
+- The parallel Android build workflow passed Python regression tests and completed release APK build, provenance verification, and artifact upload for this source SHA; this does not establish that the APK was installed or launched on the user's phone. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38212590634
+- Next: confirm merged-main web CI/deployment result; then prioritize the browser/device acceptance path and honest setup/status for optional AI service. Do not claim live deployment, physical-device compatibility, or real-provider analysis until separately verified.
