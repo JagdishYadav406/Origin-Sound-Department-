@@ -136,6 +136,7 @@ try {
     if (tracks.width <= 0 || tracks.height <= 0 || !Number.isFinite(tracks.duration) || tracks.duration <= 0) throw new Error("Exported WebM video stream did not decode: " + JSON.stringify(tracks));
     if (!Number.isFinite(tracks.audioDecodedSeconds) || tracks.audioDecodedSeconds <= 0 || tracks.audioChannels < 1) throw new Error("Exported WebM audio stream did not decode: " + JSON.stringify(tracks));
     if (Math.abs(tracks.duration - Number(document.querySelector("#referenceVideoPlayer").duration)) > 0.35) throw new Error("Exported video duration drifted beyond 0.35 seconds: " + JSON.stringify(tracks));
+    if (Math.abs(tracks.duration - tracks.audioDecodedSeconds) > 0.35) throw new Error("Exported video/audio stream durations differ by more than 0.35 seconds; this is a duration sanity check, not proof of frame-level synchronization: " + JSON.stringify(tracks));
     return tracks;
   }, { base64: output.toString("base64") });
   await page.waitForFunction(() => (document.querySelector("#videoMixExportStatus")?.textContent || "").includes("WebM prepared"), null, { timeout: 5000 });
@@ -178,6 +179,7 @@ try {
   }, { base64: cutOutput.toString("base64") });
   assert.ok(cutTracks.width > 0 && cutTracks.height > 0, "cut WebM must decode a video stream");
   assert.ok(cutTracks.audioDuration > 0 && cutTracks.audioChannels >= 1, "cut WebM must decode matching mix audio");
+  assert.ok(Math.abs(cutTracks.duration - cutTracks.audioDuration) <= 0.35, "cut WebM video/audio durations must align within 0.35 seconds (duration sanity check only): " + JSON.stringify(cutTracks));
   assert.ok(cutTracks.duration < loadedDuration - 0.2 && cutTracks.duration > loadedDuration - 0.8, "cut WebM duration should reflect the removed source interval: " + JSON.stringify(cutTracks));
   await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Edited WebM prepared"), null, { timeout: 5000 });
 
