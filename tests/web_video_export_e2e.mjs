@@ -122,12 +122,19 @@ try {
       });
     }
     if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) throw new Error("Exported WebM has invalid media metadata after end-seek duration resolution");
-    const stream = video.captureStream();
     await video.play();
     await new Promise(resolve => setTimeout(resolve, 150));
-    const tracks = { video: stream.getVideoTracks().length, audio: stream.getAudioTracks().length, duration: video.duration, width: video.videoWidth, height: video.videoHeight };
-    video.pause(); stream.getTracks().forEach(t => t.stop());
-    if (tracks.video < 1 || tracks.audio < 1) throw new Error("Exported WebM must contain both video and mixed-audio tracks: " + JSON.stringify(tracks));
+    const tracks = { duration: video.duration, width: video.videoWidth, height: video.videoHeight };
+    video.pause();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error("Web Audio decoder unavailable for output verification");
+    const audioContext = new AudioContextClass();
+    const audioBuffer = await audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    tracks.audioDecodedSeconds = audioBuffer.duration;
+    tracks.audioChannels = audioBuffer.numberOfChannels;
+    await audioContext.close();
+    if (tracks.width <= 0 || tracks.height <= 0 || !Number.isFinite(tracks.duration) || tracks.duration <= 0) throw new Error("Exported WebM video stream did not decode: " + JSON.stringify(tracks));
+    if (!Number.isFinite(tracks.audioDecodedSeconds) || tracks.audioDecodedSeconds <= 0 || tracks.audioChannels < 1) throw new Error("Exported WebM audio stream did not decode: " + JSON.stringify(tracks));
     if (Math.abs(tracks.duration - Number(document.querySelector("#referenceVideoPlayer").duration)) > 0.35) throw new Error("Exported video duration drifted beyond 0.35 seconds: " + JSON.stringify(tracks));
     return tracks;
   }, { base64: output.toString("base64") });
@@ -157,11 +164,16 @@ try {
     const video = document.createElement("video"); video.muted = true; video.src = URL.createObjectURL(new Blob([bytes], { type: "video/webm" }));
     document.body.appendChild(video);
     await new Promise((resolve, reject) => { video.addEventListener("loadedmetadata", resolve, { once: true }); video.addEventListener("error", () => reject(new Error("Cut WebM failed to decode")), { once: true }); video.load(); });
-    const stream = video.captureStream(); await video.play(); await new Promise(resolve => setTimeout(resolve, 150));
-    const result = { video: stream.getVideoTracks().length, audio: stream.getAudioTracks().length, duration: video.duration };
-    video.pause(); stream.getTracks().forEach(t => t.stop()); URL.revokeObjectURL(video.src); video.remove(); return result;
+    await video.play(); await new Promise(resolve => setTimeout(resolve, 150));
+    const result = { duration: video.duration, width: video.videoWidth, height: video.videoHeight };
+    video.pause();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext; const ac = new AudioContextClass();
+    const audio = await ac.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    result.audioDuration = audio.duration; result.audioChannels = audio.numberOfChannels;
+    await ac.close(); URL.revokeObjectURL(video.src); video.remove(); return result;
   }, { base64: cutOutput.toString("base64") });
-  assert.ok(cutTracks.video >= 1 && cutTracks.audio >= 1, "cut WebM must contain both picture and matching mix audio");
+  assert.ok(cutTracks.width > 0 && cutTracks.height > 0, "cut WebM must decode a video stream");
+  assert.ok(cutTracks.audioDuration > 0 && cutTracks.audioChannels >= 1, "cut WebM must decode matching mix audio");
   assert.ok(cutTracks.duration < loadedDuration - 0.2 && cutTracks.duration > loadedDuration - 0.8, "cut WebM duration should reflect the removed source interval: " + JSON.stringify(cutTracks));
   await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Edited WebM prepared"), null, { timeout: 5000 });
 
