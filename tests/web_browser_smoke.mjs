@@ -357,10 +357,14 @@ try {
   assert.ok(project.sources?.dialogue?.sha256, "project should record the source fingerprint");
   assert.equal(project.sources?.dialogue?.decoded, true);
   assert.ok(!Object.hasOwn(project, "audioData"), "project must not silently embed source audio");
-  assert.equal(project.videoReference, null, "project without a video must store no video reference");
+  assert.equal(project.videoReference?.name, "osd-ai-contract-smoke.webm", "project should preserve the selected video reference metadata");
+  assert.equal(project.videoReference?.mime, "video/webm", "project should preserve the selected video MIME type");
+  assert.equal(project.videoReference?.durationSeconds, 1.4, "project should preserve the decoded video duration");
+  assert.equal(project.videoReference?.width, 160, "project should preserve decoded video width");
+  assert.equal(project.videoReference?.height, 90, "project should preserve decoded video height");
   assert.deepEqual(project.videoCues, [], "project without video cues should store an empty cue list");
   assert.equal(await page.locator("#referenceVideo").count(), 1, "video reference picker should be available");
-  assert.equal(await page.locator("#referenceVideoPlayer").isVisible(), false, "video preview should remain hidden until a video is selected");
+  assert.equal(await page.locator("#referenceVideoPlayer").isVisible(), true, "selected video preview should remain available after project save");
 
   // Load the saved project back through the real file input and verify settings restore.
   await page.locator("#eqbass-dialogue").evaluate(el => { el.value = "0"; el.dispatchEvent(new Event("input", { bubbles: true })); });
