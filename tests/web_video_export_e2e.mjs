@@ -58,7 +58,7 @@ try {
       probe.addEventListener("error", () => reject(new Error("Generated video fixture failed to decode")), { once: true });
       probe.load();
     });
-    const result = { base64: await blob.arrayBuffer().then(b => btoa(String.fromCharCode(...new Uint8Array(b)))), duration: probe.duration, width: probe.videoWidth, height: probe.videoHeight, bytes: blob.size, mime: blob.type };
+    const result = { base64: await blob.arrayBuffer().then(b => { const bytes = new Uint8Array(b); let binary = ""; for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(binary); }), duration: probe.duration, width: probe.videoWidth, height: probe.videoHeight, bytes: blob.size, mime: blob.type };
     URL.revokeObjectURL(url);
     return result;
   });
