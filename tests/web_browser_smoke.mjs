@@ -231,11 +231,18 @@ try {
   assert.match(await page.locator("#log").innerText(), /SOURCE_MEMORY_PREFLIGHT/);
   assert.match(await page.locator("#log").innerText(), /SOURCE_MEMORY_POST_DECODE_CHECK.*passed=true/);
 
+  let unexpectedRenderDownloads = 0;
+  const countUnexpectedRenderDownload = () => { unexpectedRenderDownloads += 1; };
+  page.on("download", countUnexpectedRenderDownload);
   await page.locator("#render").click();
   await page.waitForFunction(() => {
     const message = document.querySelector("#message")?.textContent || "";
     return message.startsWith("Stereo WAV created") || message.startsWith("Render stopped") || message.startsWith("Mix did not complete");
   }, null, { timeout: 20000 });
+  await page.waitForTimeout(250);
+  page.off("download", countUnexpectedRenderDownload);
+  assert.equal(unexpectedRenderDownloads, 0, "render should prepare a preview without forcing an automatic download");
+  assert.equal(await page.locator("#downloadMix").isDisabled(), false, "explicit WAV download should be enabled after successful render");
 
   const renderMessage = await page.locator("#message").innerText();
   assert.match(renderMessage, /^Stereo WAV created\b/, "render did not succeed: " + renderMessage);
