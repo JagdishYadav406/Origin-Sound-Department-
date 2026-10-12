@@ -219,3 +219,12 @@
 - PR web verification run `38214408542` completed successfully: static safety checks, inline JavaScript syntax, Chromium install, and existing Chromium audio import/render/QC/project smoke suite all passed. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38214408542
 - Important limit: the smoke suite does not exercise a real video file through the full recording/download path. The new feature remains experimental; browser recording is real-time and re-encoded, and OSD does not verify saved-file playback, A/V synchronization, or download completion. No physical Galaxy A20 acceptance has occurred.
 - Main-branch deployment after merge must be checked separately. Do not call video export production-ready until a dedicated fixture-based end-to-end test validates generated WebM metadata, decode/playback, duration/sync, cancellation, and failure cleanup, followed by real-device review.
+
+
+## 2026-10-12 — Video export resource-guard hardening merged
+
+- Merged PR #61 as `87d286d9d23c91da2166068e58bcfa45dea46cdb`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/61
+- Verification run `38214744783` completed successfully, including static safety checks, inline JavaScript syntax and Chromium audio import/render/QC/project smoke tests: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38214744783
+- Added a 10-minute video duration guard, incremental 500 MiB recording limit, source-video audio mute/restore around export, and smoke assertions for duration mismatch and duration limit.
+- CI test suite uses a synthetic video surface and does not prove a real codec-generated WebM's decode/playback or A/V sync. The feature remains experimental; physical Galaxy A20 validation remains outstanding.
+- Deployment after this merge has not yet been confirmed. Follow-up work should add a dedicated end-to-end generated-media fixture test and validate output metadata, playback, sync, cancellation and cleanup before any production-ready claim.
