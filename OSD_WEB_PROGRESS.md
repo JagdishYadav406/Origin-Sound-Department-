@@ -210,3 +210,12 @@
 - Added `docs/VIDEO_EXPORT_ACCEPTANCE.md` defining safe source-preserving video-plus-soundtrack export options and acceptance gates. It explicitly states muxing is NOT IMPLEMENTED / NOT ACCEPTED.
 - Engineering decision: do not falsely label browser MediaRecorder/canvas re-encoding as lossless or deterministic. Evaluate a pinned FFmpeg worker against browser-only real-time capture, with explicit media consent, strict resource limits, sync checks, output decode/metadata verification, cleanup and Galaxy A20 acceptance.
 - Next: implement only after choosing the runtime/deployment path that is supportable within this static Pages app and user constraints. Until then keep WAV export separate and describe video muxing as not available. Real AI provider operation and physical-device compatibility also remain unverified.
+
+
+## 2026-10-12 — Experimental video + mix WebM export merged (gated)
+
+- Merged PR #60 as `cdd740f65f108106151f0c495574f82389225ef1`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/60
+- Added an explicit opt-in browser export path that combines canvas-captured video frames with the current rendered OSD WAV into a new WebM file. It blocks stale mixes and video/mix duration mismatch (>0.25 s), checks required browser APIs, supports cancellation (partial output discarded), caps output at 500 MiB, and never overwrites the selected source media.
+- PR web verification run `38214408542` completed successfully: static safety checks, inline JavaScript syntax, Chromium install, and existing Chromium audio import/render/QC/project smoke suite all passed. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38214408542
+- Important limit: the smoke suite does not exercise a real video file through the full recording/download path. The new feature remains experimental; browser recording is real-time and re-encoded, and OSD does not verify saved-file playback, A/V synchronization, or download completion. No physical Galaxy A20 acceptance has occurred.
+- Main-branch deployment after merge must be checked separately. Do not call video export production-ready until a dedicated fixture-based end-to-end test validates generated WebM metadata, decode/playback, duration/sync, cancellation, and failure cleanup, followed by real-device review.
