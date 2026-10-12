@@ -231,11 +231,16 @@ try {
     throw new Error("Matching source metadata did not restore the saved picture timeline: " + JSON.stringify(diagnostic));
   });
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "matching source metadata should restore the saved interval");
+  // Reload the saved project so a pending restore decision exists for the
+  // mismatched-source case. A successful restore consumes that pending decision.
+  await page.locator("#loadProjectFile").setInputFiles({ name: "osd-roundtrip-project.json", mimeType: "application/json", buffer: projectBytes });
+  await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Re-select it to preview"), null, { timeout: 5000 });
   const mismatchedSource = Buffer.from(fixture.base64, "base64");
   await page.locator("#referenceVideo").setInputFiles({
     name: "different-video-name.webm", mimeType: "video/webm", lastModified: 1700000000000,
     buffer: mismatchedSource
   });
+  await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Video metadata read by this browser"), null, { timeout: 10000 });
   await page.waitForFunction(() => (document.querySelector("#log")?.textContent || "").includes("PICTURE_TIMELINE_RESTORE_BLOCKED source_identity_mismatch=true"), null, { timeout: 10000 });
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "different source metadata must not inherit old picture cuts");
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
