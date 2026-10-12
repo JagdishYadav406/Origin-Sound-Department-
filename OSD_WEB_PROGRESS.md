@@ -260,3 +260,11 @@
 - Regression CI on feature commit 308490d3d1ef615118a97c6f1df010308c437998 passed: static safety checks, inline JavaScript syntax, Chromium audio import/render/QC/project smoke test, real-media WebM video+audio export E2E, and Android build/APK integrity/artifact upload. This is CI evidence, not physical-device acceptance.
 - After merge, main now contains schema v12. Main-branch deployment/verification must be checked separately.
 - Known limits remain: media bytes and undo history are not embedded/persisted; matching uses file metadata, not a content hash; browser real-time WebM export can drift in A/V sync; no transitions, crossfades, grading, reframing, or Galaxy A20 physical validation.
+
+
+## Checkpoint — autonomous analysis input hardening (2026-10-12)
+- Merged PR #68 as main commit 91a458e31819386e4d2c7816975d5126993aa887.
+- Autonomous edit-draft generation now caps scenes and cues processed at 500 each, records excess lists as invalid, rejects null/non-object/array-shaped items, normalizes missing/non-finite confidence to 0 before clamping, and bounds sampled frame timestamps to 500 valid finite in-range values.
+- Feature-branch CI passed: static safety checks, inline JavaScript syntax, Chromium audio import/render/QC/project smoke tests, real-media WebM video-plus-mix export E2E, and Android regression/build/APK provenance/artifact upload.
+- Main-branch web verification/deployment and Android build have been triggered for commit 91a458e31819386e4d2c7816975d5126993aa887 and were still in progress at checkpoint time.
+- This hardening does not establish AI scene understanding accuracy, edit quality, frame-accurate A/V sync, or physical Galaxy A20 acceptance.
