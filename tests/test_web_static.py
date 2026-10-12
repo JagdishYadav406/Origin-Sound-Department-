@@ -253,6 +253,11 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("AUTONOMOUS_EDIT_CUES_STAGED", self.inline_script)
         self.assertIn("source_media_modified=false mix_settings_modified=false", self.inline_script)
         self.assertIn("method=local-frame-difference", self.inline_script)
+        self.assertIn("sceneInput.slice(0,500)", self.inline_script)
+        self.assertIn("cueInput.slice(0,500)", self.inline_script)
+        self.assertIn("malformed scene item", self.inline_script)
+        self.assertIn("malformed cue item", self.inline_script)
+        self.assertIn("sampledFrameTimesSeconds:Array.isArray(aiLastResult.sampledFrameTimesSeconds)?aiLastResult.sampledFrameTimesSeconds.slice(0,500)", self.inline_script)
         self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
     def test_picture_edit_timeline_is_bounded_and_non_destructive(self):
