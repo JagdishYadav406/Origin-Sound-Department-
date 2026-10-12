@@ -115,15 +115,15 @@ try {
   await page.waitForFunction(() => (document.querySelector("#mixPreviewStatus")?.textContent || "").endsWith("CURRENT"), null, { timeout: 20000 });
   await page.waitForFunction(() => !document.querySelector("#exportVideoMix")?.disabled, null, { timeout: 10000 });
   const beforeMute = await page.locator("#referenceVideoPlayer").evaluate(v => v.muted);
-  const downloadPromise = page.waitForEvent("download", { timeout: 15000 });
+  const downloadPromise = page.waitForEvent("download", { timeout: 15000 }).then(download => ({ kind: "download", download }), error => ({ kind: "download-timeout", error: String(error.message || error) }));
   const qcFailurePromise = page.waitForFunction(() => {
     const status = document.querySelector("#videoMixExportStatus")?.textContent || "";
     return status.startsWith("Export rejected by QC:") || status.startsWith("Failed:") || status.startsWith("Rejected:");
-  }, null, { timeout: 15000 }).then(() => {
-    throw new Error("Export QC rejected the output: " + (page.locator("#videoMixExportStatus").textContent() || "reason unavailable"));
-  });
+  }, null, { timeout: 15000 }).then(async () => ({ kind: "qc-failure", status: await page.locator("#videoMixExportStatus").textContent().catch(() => "status unavailable") }), error => ({ kind: "qc-timeout", error: String(error.message || error) }));
   await page.locator("#exportVideoMix").click();
-  const download = await Promise.race([downloadPromise, qcFailurePromise]);
+  const outcome = await Promise.race([downloadPromise, qcFailurePromise]);
+  if (outcome.kind === "qc-failure") throw new Error("Export QC rejected the output: " + outcome.status);
+  if (outcome.kind !== "download") throw new Error("Export produced no download and no explicit QC rejection: " + outcome.error);
   assert.match(download.suggestedFilename(), /-OSD-mix\.webm$/, "export must download a new WebM rather than overwrite the source");
   const stream = await download.createReadStream();
   const parts = [];
