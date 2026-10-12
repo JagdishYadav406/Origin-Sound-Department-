@@ -228,3 +228,14 @@
 - Added a 10-minute video duration guard, incremental 500 MiB recording limit, source-video audio mute/restore around export, and smoke assertions for duration mismatch and duration limit.
 - CI test suite uses a synthetic video surface and does not prove a real codec-generated WebM's decode/playback or A/V sync. The feature remains experimental; physical Galaxy A20 validation remains outstanding.
 - Deployment after this merge has not yet been confirmed. Follow-up work should add a dedicated end-to-end generated-media fixture test and validate output metadata, playback, sync, cancellation and cleanup before any production-ready claim.
+
+
+## 2026-10-12 — Supervised autonomous edit drafting and scene-aware video analysis merged
+
+- Merged PR #64 as `96277707c61add3300020d94b40b9b158afece79`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/64
+- Web verification run `38217009305` passed: static safety tests, inline JavaScript syntax, Chromium audio import/render/QC/project smoke tests, and the generated-media WebM export end-to-end test. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38217009305
+- Added an Autonomous Edit Assistant that builds a time-coded JSON draft from current AI scene/cue results, validates time ranges, retains evidence/confidence, flags low-confidence and overlapping same-category cues, and offers explicit cue-sheet staging, JSON export, and draft clearing.
+- Staging edits only local cue notes; it does not alter source media or track mix settings. Audio-only/combined drafts require timeline alignment confirmation, and withdrawing alignment invalidates the draft.
+- Refined visual analysis by comparing 12 low-resolution scouting frames locally and selecting up to 8 keyframes using visual-difference scores plus timeline anchors for the consented AI request. Only selected keyframes are sent; the original video and its soundtrack are not uploaded by visual analysis.
+- Scope limit: autonomous picture cuts, transitions, reframing, and color grading are not implemented. The JSON package is a structured edit decision plan, not proof that picture edits were executed. WebM video+mix export remains experimental and physical Galaxy A20 validation is still outstanding.
+- Main deployment after this merge must be checked separately; CI passing is not itself confirmation of the public Pages deployment or real-device behavior.
