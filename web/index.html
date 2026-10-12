@@ -323,28 +323,41 @@ function waitForVideoSeek(player,time,token){
 async function sampleVideoFrames(token){
  const player=$('referenceVideoPlayer'),duration=videoMetadata?.duration;
  if(!Number.isFinite(duration)||duration<=0||duration>600)throw new Error('Choose a playable video up to 10 minutes long.');
- const count=Math.min(8,Math.max(4,Math.ceil(duration/30)));
- const priorTime=player.currentTime,wasPaused=player.paused,frames=[];
- const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:false});
+ const scoutCount=12,priorTime=player.currentTime,wasPaused=player.paused,scout=[];
+ const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
  if(!ctx)throw new Error('This browser cannot create a frame-sampling canvas.');
- const scale=Math.min(1,640/player.videoWidth,640/player.videoHeight);
+ const scale=Math.min(1,160/player.videoWidth,160/player.videoHeight);
  canvas.width=Math.max(1,Math.round(player.videoWidth*scale));canvas.height=Math.max(1,Math.round(player.videoHeight*scale));
  try{
   if(!player.paused)player.pause();
-  for(let i=0;i<count;i++){
+  let previousPixels=null;
+  for(let i=0;i<scoutCount;i++){
    if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
-   const t=count===1?Math.min(duration*.5,Math.max(0,duration-.02)):Math.min(duration-.02,Math.max(0,(duration-.04)*i/(count-1)));
-   $('aiAnalysisStatus').textContent=`Sampling local video frame ${i+1} of ${count} at ${t.toFixed(2)} seconds. No frame has been sent yet.`;
-   await waitForVideoSeek(player,t,token);
-   if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
+   const t=Math.min(Math.max(0,duration-.02),Math.max(0,(duration-.04)*i/(scoutCount-1)));
+   $('aiAnalysisStatus').textContent='Locally comparing frame '+(i+1)+' of '+scoutCount+' to find scene changes. These small scouting frames stay in this browser.';
+   await waitForVideoSeek(player,t,token);if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
    ctx.drawImage(player,0,0,canvas.width,canvas.height);
-   frames.push({timestampSeconds:Number(t.toFixed(3)),imageDataUrl:canvas.toDataURL('image/jpeg',0.68)});
+   const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;let difference=0,samples=0;
+   if(previousPixels){for(let p=0;p<pixels.length;p+=32){difference+=Math.abs(pixels[p]-previousPixels[p])+Math.abs(pixels[p+1]-previousPixels[p+1])+Math.abs(pixels[p+2]-previousPixels[p+2]);samples+=3}}
+   scout.push({index:i,timestampSeconds:Number(t.toFixed(3)),changeScore:samples?difference/(samples*255):0});previousPixels=pixels;
   }
- }finally{
-  try{player.currentTime=priorTime}catch(_){}
-  if(!wasPaused)try{await player.play()}catch(_){}
- }
- return frames;
+  const selected=new Set([0,Math.round((scoutCount-1)/3),Math.round(2*(scoutCount-1)/3),scoutCount-1]);
+  const changeCandidates=scout.slice(1,scoutCount-1).slice().sort((a,b)=>b.changeScore-a.changeScore);
+  for(const item of changeCandidates){if(selected.size>=8)break;if(item.changeScore>0)selected.add(item.index)}
+  while(selected.size<8){let best=-1,bestDistance=-1;for(const item of scout){if(selected.has(item.index))continue;const distance=Math.min(...Array.from(selected,index=>Math.abs(index-item.index)));if(distance>bestDistance){bestDistance=distance;best=item.index}}if(best<0)break;selected.add(best)}
+  const chosen=Array.from(selected).sort((a,b)=>a-b),uploadScale=Math.min(1,640/player.videoWidth,640/player.videoHeight);
+  canvas.width=Math.max(1,Math.round(player.videoWidth*uploadScale));canvas.height=Math.max(1,Math.round(player.videoHeight*uploadScale));
+  const frames=[];
+  for(let i=0;i<chosen.length;i++){
+   if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
+   const item=scout[chosen[i]],t=item.timestampSeconds;
+   $('aiAnalysisStatus').textContent='Preparing selected key frame '+(i+1)+' of '+chosen.length+' for consented visual analysis.';
+   await waitForVideoSeek(player,t,token);ctx.drawImage(player,0,0,canvas.width,canvas.height);
+   frames.push({timestampSeconds:t,imageDataUrl:canvas.toDataURL('image/jpeg',0.68)});
+  }
+  log('VIDEO_KEYFRAME_SELECTION method=local-frame-difference scout_frames='+scoutCount+' uploaded_frames='+frames.length+' top_change_scores='+JSON.stringify(changeCandidates.slice(0,4).map(x=>({time:x.timestampSeconds,score:Number(x.changeScore.toFixed(3))}))));
+  return frames;
+ }finally{try{player.currentTime=priorTime}catch(_){}if(!wasPaused)try{await player.play()}catch(_){}}
 }
 function formatAICueTime(seconds){return formatVideoTime(Math.max(0,Number(seconds)||0))}
 function addAICueToVideoNotes(cue){
