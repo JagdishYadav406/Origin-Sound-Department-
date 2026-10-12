@@ -249,7 +249,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("time range outside selected video", self.inline_script)
         self.assertIn("AUTONOMOUS_EDIT_CUES_STAGED", self.inline_script)
         self.assertIn("source_media_modified=false mix_settings_modified=false", self.inline_script)
-        self.assertIn("scene-change-aware", self.html.lower())
+        self.assertIn("method=local-frame-difference", self.inline_script)
         self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
 if __name__ == "__main__":
