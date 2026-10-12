@@ -250,3 +250,13 @@
 - E2E test verifies the exported WebM decodes to valid video metadata and its audio payload decodes, and that removing an interval shortens output duration. This test does not establish frame-accurate A/V sync across all browsers/devices.
 - Remaining limitations: no transitions/crossfades, optical-flow smoothing, color grading, reframing, or phone hardware acceptance. WebM is real-time re-encoded and codec/device dependent; inspect playback, sync, and sound continuity. Galaxy A20 physical-device validation remains outstanding.
 - Main deployment after this merge must be checked separately.
+
+
+## Checkpoint — OSD web project picture-timeline persistence (2026-10-12)
+- Merged PR #67 as commit 6fda47eccfce520337530092454c88ee50ea6b83.
+- Project schema v12 saves picture timeline intervals and the selected reference video's name/size/lastModified/duration metadata. Older project versions 1–11 remain accepted.
+- Import validates timeline structure, interval count (maximum 200), finite bounds, minimum interval duration, ordering/non-overlap, and source-duration bounds before mutating project state.
+- Saved picture intervals are restored only after a newly selected video matches the saved metadata and duration. This metadata match is not a cryptographic proof of source identity; the UI/log says so.
+- Regression CI on feature commit 308490d3d1ef615118a97c6f1df010308c437998 passed: static safety checks, inline JavaScript syntax, Chromium audio import/render/QC/project smoke test, real-media WebM video+audio export E2E, and Android build/APK integrity/artifact upload. This is CI evidence, not physical-device acceptance.
+- After merge, main now contains schema v12. Main-branch deployment/verification must be checked separately.
+- Known limits remain: media bytes and undo history are not embedded/persisted; matching uses file metadata, not a content hash; browser real-time WebM export can drift in A/V sync; no transitions, crossfades, grading, reframing, or Galaxy A20 physical validation.
