@@ -199,6 +199,20 @@ try {
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /restrained musical bed/);
   assert.equal(await page.locator("#exportAIPlanJSON").isEnabled(), true);
   assert.equal(await page.locator("#exportAICuesCSV").isEnabled(), true);
+  assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "autonomous edit draft should enable only after video analysis completes");
+  const gainBeforeAutonomousDraft = await page.locator("#gain-dialogue").inputValue();
+  await page.locator("#buildAutonomousEdit").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Draft built"), null, { timeout: 5000 });
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 scene observations/);
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 sound cues/);
+  assert.equal(await page.locator("#exportAutonomousEdit").isEnabled(), true, "valid edit package should be exportable");
+  assert.equal(await page.locator("#applyAutonomousEdit").isEnabled(), true, "valid sound cue plan should be stageable");
+  assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "building a draft must not change mix settings");
+  await page.locator("#applyAutonomousEdit").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Cue staging complete"), null, { timeout: 5000 });
+  assert.match(await page.locator("#videoCueList").innerText(), /restrained musical bed/);
+  assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "staging cue notes must not change mix settings");
+
 
   // Verify the separate, explicitly consented audio-aware request path as well.
   await page.locator("#aiAudioFile").setInputFiles({
