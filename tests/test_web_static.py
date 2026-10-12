@@ -255,6 +255,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("method=local-frame-difference", self.inline_script)
         self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
+    def test_picture_edit_timeline_is_bounded_and_non_destructive(self):
+        for element_id in ("pictureEditTimeline", "buildPictureTimeline", "splitPictureAtPlayhead", "resetPictureTimeline", "exportPictureEdits", "cancelPictureEditExport"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn("PICTURE_TIMELINE_BUILT", self.inline_script)
+        self.assertIn("PICTURE_INTERVAL_REMOVED", self.inline_script)
+        self.assertIn("matching_audio_slices=true", self.inline_script)
+        self.assertIn("partial_output_discarded=true", self.inline_script)
+        self.assertIn("500*MiB", self.inline_script)
+        self.assertIn("job.audioStream?.getTracks().forEach(t=>t.stop())", self.inline_script)
+        self.assertIn("source_unchanged=true", self.inline_script)
+
 if __name__ == "__main__":
     unittest.main()
     def test_original_source_previews_are_separate_from_rendered_mix(self):
