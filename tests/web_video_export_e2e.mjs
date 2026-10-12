@@ -112,7 +112,16 @@ try {
       video.addEventListener("error", () => reject(new Error("Exported WebM failed to load metadata/decode")), { once: true });
       video.load();
     });
-    if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) throw new Error("Exported WebM has invalid media metadata");
+    if (!Number.isFinite(video.duration) || video.duration <= 0) {
+      await new Promise(resolve => {
+        let done = false;
+        const finish = () => { if (done) return; done = true; clearTimeout(timer); video.removeEventListener("seeked", finish); resolve(); };
+        const timer = setTimeout(finish, 1800);
+        video.addEventListener("seeked", finish, { once: true });
+        try { video.currentTime = 1e101; } catch { finish(); }
+      });
+    }
+    if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) throw new Error("Exported WebM has invalid media metadata after end-seek duration resolution");
     const stream = video.captureStream();
     await video.play();
     await new Promise(resolve => setTimeout(resolve, 150));
