@@ -201,3 +201,12 @@
 - The parallel Android build workflow `38213532108` also completed successfully for that source commit. This only verifies CI artifact build; it is not evidence of installation or launch on the user's Galaxy A20. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38213532108
 - Current deployment workflow is green; physical phone testing, provider-backed AI analysis, and direct final-video mux/export remain UNKNOWN / not accepted.
 - Next engineering priority: define a separately gated experimental video-export path rather than falsely claiming muxing exists. Browser MediaRecorder/canvas export would be real-time and usually lossy, codec/browser dependent, and must never overwrite the original. Acceptance must check cancellation, A/V duration alignment, generated file metadata and decode/playback; where possible, compare frame count and audio continuity. Do not ship it as production-ready without browser runtime coverage and clear output format labeling.
+
+
+## 2026-10-12 — Video export release gates documented
+
+- Confirmed main web verification and deploy jobs passed for `75b54c7df04c9c3900c6d5c6672f1198ebc62482`; Android CI build also passed for that commit. Neither result is physical phone acceptance.
+- Merged PR #59 as `e09215e6aa160a568e7953a7c5122fbc35aa3753`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/59
+- Added `docs/VIDEO_EXPORT_ACCEPTANCE.md` defining safe source-preserving video-plus-soundtrack export options and acceptance gates. It explicitly states muxing is NOT IMPLEMENTED / NOT ACCEPTED.
+- Engineering decision: do not falsely label browser MediaRecorder/canvas re-encoding as lossless or deterministic. Evaluate a pinned FFmpeg worker against browser-only real-time capture, with explicit media consent, strict resource limits, sync checks, output decode/metadata verification, cleanup and Galaxy A20 acceptance.
+- Next: implement only after choosing the runtime/deployment path that is supportable within this static Pages app and user constraints. Until then keep WAV export separate and describe video muxing as not available. Real AI provider operation and physical-device compatibility also remain unverified.
