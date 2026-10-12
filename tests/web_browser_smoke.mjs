@@ -76,6 +76,7 @@ try {
   assert.match(await page.locator("#mixPreview").innerText(), /Edited audio — rendered mix/, "rendered output must be labelled separately");
   const firstEditedUrl = await page.locator("#mixPlayer").getAttribute("src");
   assert.ok(firstEditedUrl?.startsWith("blob:") && firstEditedUrl !== originalSourceUrl, "edited mix must have a distinct local URL from the original source");
+  assert.equal(await page.locator("#player-dialogue").getAttribute("src"), originalSourceUrl, "rendering must not replace or repoint the original preview");
   assert.equal(await page.locator("#downloadMix").isEnabled(), true, "current edited mix must be downloadable");
   assert.match(await page.locator("#mixPreviewStatus").innerText(), /CURRENT$/, "successful render should be marked current");
   await page.locator("#masterGain").evaluate(el => {
