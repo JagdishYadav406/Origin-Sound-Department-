@@ -200,11 +200,25 @@ try {
   assert.ok(Math.abs(savedProject.pictureTimeline.segments[0].end - loadedDuration) < 0.15, "saved picture interval should preserve its cut end");
   await page.locator("#loadProjectFile").setInputFiles({ name: "osd-roundtrip-project.json", mimeType: "application/json", buffer: projectBytes });
   await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Re-select it to preview"), null, { timeout: 5000 });
+  await page.locator("#referenceVideo").setInputFiles([]);
   await page.locator("#referenceVideo").setInputFiles({
     name: "osd-generated-video-fixture.webm", mimeType: "video/webm", lastModified: 1700000000000,
     buffer: Buffer.from(fixture.base64, "base64")
   });
-  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline restored"), null, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    const video = document.querySelector("#referenceVideoPlayer");
+    return video && video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0;
+  }, null, { timeout: 10000 });
+  const restoreDiagnostic = await page.evaluate(() => ({
+    status: document.querySelector("#pictureTimelineStatus")?.textContent || "",
+    state: document.querySelector("#videoReferenceState")?.textContent || "",
+    duration: document.querySelector("#referenceVideoPlayer")?.duration,
+    selectedFile: (() => { const f=document.querySelector("#referenceVideo")?.files?.[0]; return f ? {name:f.name,size:f.size,lastModified:f.lastModified} : null; })(),
+    savedSource: window.__osdTestSavedPictureSource || null
+  }));
+  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline restored"), null, { timeout: 10000 }).catch(() => {
+    throw new Error("Saved picture timeline did not restore with matching source metadata: " + JSON.stringify(restoreDiagnostic));
+  });
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "matching source metadata should restore the saved interval");
   const mismatchedSource = Buffer.from(fixture.base64, "base64");
   await page.locator("#referenceVideo").setInputFiles({
