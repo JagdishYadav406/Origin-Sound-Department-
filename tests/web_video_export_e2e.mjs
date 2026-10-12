@@ -196,6 +196,11 @@ try {
   const savedProject = JSON.parse(projectBytes.toString("utf8"));
   assert.equal(savedProject.projectVersion, 12, "picture timeline project schema should be v12");
   assert.equal(savedProject.pictureTimeline.segments.length, 1, "saved project should preserve the selected picture interval");
+  assert.deepEqual(
+    { name: savedProject.pictureTimeline.source?.name, size: savedProject.pictureTimeline.source?.size, lastModified: savedProject.pictureTimeline.source?.lastModified },
+    { name: "osd-generated-video-fixture.webm", size: Buffer.from(fixture.base64, "base64").length, lastModified: 1700000000000 },
+    "saved picture timeline must include the reference-video identity needed for safe restoration"
+  );
   assert.ok(Math.abs(savedProject.pictureTimeline.segments[0].start - 0.5) < 0.15, "saved picture interval should preserve its cut start");
   assert.ok(Math.abs(savedProject.pictureTimeline.segments[0].end - loadedDuration) < 0.15, "saved picture interval should preserve its cut end");
   await page.locator("#loadProjectFile").setInputFiles({ name: "osd-roundtrip-project.json", mimeType: "application/json", buffer: projectBytes });
@@ -209,15 +214,14 @@ try {
     const video = document.querySelector("#referenceVideoPlayer");
     return video && video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0;
   }, null, { timeout: 10000 });
-  const restoreDiagnostic = await page.evaluate(() => ({
-    status: document.querySelector("#pictureTimelineStatus")?.textContent || "",
-    state: document.querySelector("#videoReferenceState")?.textContent || "",
-    duration: document.querySelector("#referenceVideoPlayer")?.duration,
-    selectedFile: (() => { const f=document.querySelector("#referenceVideo")?.files?.[0]; return f ? {name:f.name,size:f.size,lastModified:f.lastModified} : null; })(),
-    savedSource: window.__osdTestSavedPictureSource || null
-  }));
-  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline restored"), null, { timeout: 10000 }).catch(() => {
-    throw new Error("Saved picture timeline did not restore with matching source metadata: " + JSON.stringify(restoreDiagnostic));
+  await page.waitForFunction(() => (document.querySelector("#log")?.textContent || "").includes("PICTURE_TIMELINE_RESTORED identity=name_size_mtime_duration"), null, { timeout: 10000 }).catch(async () => {
+    const diagnostic = await page.evaluate(() => ({
+      status: document.querySelector("#pictureTimelineStatus")?.textContent || "",
+      state: document.querySelector("#videoReferenceState")?.textContent || "",
+      duration: document.querySelector("#referenceVideoPlayer")?.duration,
+      log: (document.querySelector("#log")?.textContent || "").slice(-2500)
+    }));
+    throw new Error("Matching source metadata did not restore the saved picture timeline: " + JSON.stringify(diagnostic));
   });
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "matching source metadata should restore the saved interval");
   const mismatchedSource = Buffer.from(fixture.base64, "base64");
@@ -225,7 +229,7 @@ try {
     name: "different-video-name.webm", mimeType: "video/webm", lastModified: 1700000000000,
     buffer: mismatchedSource
   });
-  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline not restored"), null, { timeout: 10000 });
+  await page.waitForFunction(() => (document.querySelector("#log")?.textContent || "").includes("PICTURE_TIMELINE_RESTORE_BLOCKED source_identity_mismatch=true"), null, { timeout: 10000 });
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "different source metadata must not inherit old picture cuts");
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({ status: "PASS", realGeneratedVideoFixture: "PASS", realWavRender: "PASS", explicitWebmDownload: "PASS", exportedWebmMetadataAndDecode: "PASS", outputContainsVideoAndAudioTracks: "PASS", outputDurationChecked: "PASS", sourceMuteStateRestored: "PASS", outputBytes: output.length, fixtureDurationSeconds: fixture.duration }, null, 2));
