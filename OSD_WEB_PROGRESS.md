@@ -268,3 +268,12 @@
 - Feature-branch CI passed: static safety checks, inline JavaScript syntax, Chromium audio import/render/QC/project smoke tests, real-media WebM video-plus-mix export E2E, and Android regression/build/APK provenance/artifact upload.
 - Main-branch web verification/deployment and Android build have been triggered for commit 91a458e31819386e4d2c7816975d5126993aa887 and were still in progress at checkpoint time.
 - This hardening does not establish AI scene understanding accuracy, edit quality, frame-accurate A/V sync, or physical Galaxy A20 acceptance.
+
+
+## Checkpoint — WebM audio/video duration alignment regression (2026-10-12)
+- Merged PR #69 as commit fb560f1d4cdc33675824cf64c1bc16a6ba7cd983.
+- Extended real-media WebM end-to-end checks to compare decoded video and audio stream durations for normal exports and picture-cut exports; threshold is 0.35 seconds.
+- The test explicitly calls this a duration sanity check, not proof of frame-level synchronization or absence of drift during playback.
+- Feature branch CI passed the complete web verification including static safety, JS syntax, Chromium audio/render/QC/project smoke test and real-media video+mix export E2E; Android CI build and artifact integrity also passed for feature commit 7888cf18a6e57747665a5e7ac4596d6b3c85f574.
+- Main-branch Android build for merge commit fb560f1d4cdc33675824cf64c1bc16a6ba7cd983 was in progress at checkpoint time. Main-branch web deployment and physical Galaxy A20 validation are not yet confirmed.
+- Remaining video reliability limitation: duration alignment does not establish lip-sync/frame accuracy across the entire file. Future test should compare timestamped audio/video events or segment boundaries across the export, plus device playback testing.
