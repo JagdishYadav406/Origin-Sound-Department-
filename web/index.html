@@ -479,7 +479,7 @@ function updateCombineAIButton(){
  $('combineAIResults').disabled=!ready;
  $('combineAIStatus').textContent=ready?'Both analyses are available and the shared 00:00 alignment is confirmed. Combine them for a reviewed proposal set.':'Requires completed visual and audio analyses plus confirmation that the selected audio starts at 00:00 of this video.';
 }
-$('aiTimelineAligned').addEventListener('change',()=>{updateCombineAIButton();updateAutonomousEditControls()});
+$('aiTimelineAligned').addEventListener('change',()=>{updateCombineAIButton();if((aiLastMode==='audio'||aiLastMode==='combined')&&!$('aiTimelineAligned').checked)clearAutonomousEditDraft('Timeline alignment was unchecked. The audio-based draft was invalidated.');else updateAutonomousEditControls()});
 $('combineAIResults').addEventListener('click',()=>{
  if(!aiVisualLastResult?.analysis?.cues?.length||!aiAudioLastResult?.analysis?.cues?.length||!$('aiTimelineAligned').checked){updateCombineAIButton();return}
  const visual=aiVisualLastResult,audio=aiAudioLastResult;
