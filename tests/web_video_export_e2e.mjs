@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
+import { mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const baseUrl = process.env.OSD_BASE_URL || "http://127.0.0.1:4173/web/index.html";
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ acceptDownloads: true });
 const page = await context.newPage();
 const errors = [];
+let fixtureDirectory = null;
 page.on("pageerror", error => errors.push(error.message));
 
 function makePcmWav(seconds, sampleRate = 44100) {
@@ -75,10 +79,16 @@ try {
   assert.ok(Number.isFinite(fixture.duration) && fixture.duration >= 1.5 && fixture.duration <= 3, "fixture video duration must be readable and bounded: " + JSON.stringify({ ...fixture, base64: undefined }));
   assert.ok(fixture.width > 0 && fixture.height > 0, "fixture video must decode to real dimensions");
 
-  await page.locator("#referenceVideo").setInputFiles({
-    name: "osd-generated-video-fixture.webm", mimeType: "video/webm", lastModified: 1700000000000,
-    buffer: Buffer.from(fixture.base64, "base64")
-  });
+  // Use one real temporary file for every matching-source selection. Playwright's
+  // in-memory file payload does not reliably preserve a caller-supplied mtime.
+  fixtureDirectory = await mkdtemp(join(tmpdir(), "osd-picture-roundtrip-"));
+  const fixturePath = join(fixtureDirectory, "osd-generated-video-fixture.webm");
+  await writeFile(fixturePath, Buffer.from(fixture.base64, "base64"));
+  const fixedTime = new Date(1700000000000);
+  await utimes(fixturePath, fixedTime, fixedTime);
+  const fixtureStat = await stat(fixturePath);
+  const fixtureLastModified = Math.trunc(fixtureStat.mtimeMs);
+  await page.locator("#referenceVideo").setInputFiles(fixturePath);
   await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Video metadata read by this browser"), null, { timeout: 15000 });
   const loadedDuration = await page.locator("#referenceVideoPlayer").evaluate(v => v.duration);
   assert.ok(Number.isFinite(loadedDuration) && Math.abs(loadedDuration - fixture.duration) < 0.1, "selected source video should retain readable duration");
@@ -198,7 +208,7 @@ try {
   assert.equal(savedProject.pictureTimeline.segments.length, 1, "saved project should preserve the selected picture interval");
   assert.deepEqual(
     { name: savedProject.pictureTimeline.source?.name, size: savedProject.pictureTimeline.source?.size, lastModified: savedProject.pictureTimeline.source?.lastModified },
-    { name: "osd-generated-video-fixture.webm", size: Buffer.from(fixture.base64, "base64").length, lastModified: 1700000000000 },
+    { name: "osd-generated-video-fixture.webm", size: Buffer.from(fixture.base64, "base64").length, lastModified: fixtureLastModified },
     "saved picture timeline must include the reference-video identity needed for safe restoration"
   );
   assert.ok(Math.abs(savedProject.pictureTimeline.segments[0].start - 0.5) < 0.15, "saved picture interval should preserve its cut start");
@@ -206,10 +216,7 @@ try {
   await page.locator("#loadProjectFile").setInputFiles({ name: "osd-roundtrip-project.json", mimeType: "application/json", buffer: projectBytes });
   await page.waitForFunction(() => (document.querySelector("#videoReferenceState")?.textContent || "").includes("Re-select it to preview"), null, { timeout: 5000 });
   await page.locator("#referenceVideo").setInputFiles([]);
-  await page.locator("#referenceVideo").setInputFiles({
-    name: "osd-generated-video-fixture.webm", mimeType: "video/webm", lastModified: 1700000000000,
-    buffer: Buffer.from(fixture.base64, "base64")
-  });
+  await page.locator("#referenceVideo").setInputFiles(fixturePath);
   await page.waitForFunction(() => {
     const video = document.querySelector("#referenceVideoPlayer");
     return video && video.readyState >= 1 && Number.isFinite(video.duration) && video.duration > 0;
@@ -236,4 +243,5 @@ try {
 } finally {
   await context.close();
   await browser.close();
+  if (fixtureDirectory) await rm(fixtureDirectory, { recursive: true, force: true });
 }
