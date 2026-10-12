@@ -172,3 +172,13 @@
 - The previous video-metadata readiness / project-persistence test issue is now resolved in both the feature-branch browser suite and merged-main CI. The prior original-versus-edited audio preview issue was merged in PR #55 and had a passing browser smoke test.
 - Next work should address remaining functional gaps documented in `web/README.md`: establish a properly secured, optional AI service configuration; validate the real AI provider contract only with explicit user consent; and work toward a reliable video/audio export path. Do not store provider secrets in the static page. The current editor exports a separate WAV and does not mux it into the source video.
 - Still unverified: opening and operating the deployed page on the user's Samsung Galaxy A20, real provider-backed AI analysis, and final video mux/export. Preserve these as UNKNOWN until actually tested.
+
+
+## 2026-10-12 — Explicit WAV export behavior fixed
+
+- PR #57 merged to main as `c6e8f8e29d5e8b48d843f4c231d609013a5d171c`: https://github.com/JagdishYadav406/Origin-Sound-Department-/pull/57
+- Removed the automatic anchor-click download from successful render. Rendering now prepares the mix/preview and QC result; the existing explicit Download WAV control is the export action.
+- Added Chromium regression assertions: successful render must not trigger a browser download, and explicit WAV download must become enabled after a successful render.
+- Exact PR-head web verification passed, including static safety checks, JavaScript syntax, Chromium install, and the Chromium audio import/render/QC/project smoke test: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38212938642
+- Merge triggered main web verification/deploy run `38213207872`: https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38213207872. At checkpoint time, static safety and JavaScript syntax passed; Chromium installation/runtime checks were still in progress. Deployment for this commit is not yet confirmed.
+- Next: finish merged-main verification/deployment; then prioritize real Galaxy A20 browser acceptance and a design/test plan for direct video muxing. Current renderer still exports WAV separately; do not claim source-video mux/export or real AI provider analysis as implemented.
