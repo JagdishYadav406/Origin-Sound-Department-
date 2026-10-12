@@ -158,10 +158,8 @@ try {
     buffer: Buffer.from(videoBase64, "base64")
   });
   await page.waitForFunction(() => {
-    const player = document.querySelector("#referenceVideoPlayer");
     const state = document.querySelector("#videoReferenceState")?.textContent || "";
-    return (player && Number.isFinite(player.duration) && player.duration > 0 && player.videoWidth > 0 && player.videoHeight > 0)
-      || state.includes("could not read the video metadata");
+    return state.includes("Video metadata read by this browser") || state.includes("could not read the video metadata");
   }, null, { timeout: 15000 });
   const videoReadiness = await page.evaluate(() => ({
     duration: document.querySelector("#referenceVideoPlayer")?.duration,
