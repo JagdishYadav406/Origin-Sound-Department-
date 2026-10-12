@@ -116,8 +116,14 @@ try {
   await page.waitForFunction(() => !document.querySelector("#exportVideoMix")?.disabled, null, { timeout: 10000 });
   const beforeMute = await page.locator("#referenceVideoPlayer").evaluate(v => v.muted);
   const downloadPromise = page.waitForEvent("download", { timeout: 15000 });
+  const qcFailurePromise = page.waitForFunction(() => {
+    const status = document.querySelector("#videoMixExportStatus")?.textContent || "";
+    return status.startsWith("Export rejected by QC:") || status.startsWith("Failed:") || status.startsWith("Rejected:");
+  }, null, { timeout: 15000 }).then(() => {
+    throw new Error("Export QC rejected the output: " + (page.locator("#videoMixExportStatus").textContent() || "reason unavailable"));
+  });
   await page.locator("#exportVideoMix").click();
-  const download = await downloadPromise;
+  const download = await Promise.race([downloadPromise, qcFailurePromise]);
   assert.match(download.suggestedFilename(), /-OSD-mix\.webm$/, "export must download a new WebM rather than overwrite the source");
   const stream = await download.createReadStream();
   const parts = [];
