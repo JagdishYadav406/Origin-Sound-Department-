@@ -195,6 +195,10 @@ try {
   assert.ok(observedVisualRequest.frames.length >= 1 && observedVisualRequest.frames.length <= 8, "the frontend must send a bounded sample of at most eight frames");
   assert.ok(observedVisualRequest.frames.every(frame => /^data:image\/jpeg;base64,/.test(frame.imageDataUrl)), "frames must be resized JPEG data URLs");
   assert.ok(observedVisualRequest.frames.every(frame => Number.isFinite(frame.timestampSeconds) && frame.timestampSeconds >= 0 && frame.timestampSeconds <= observedVisualRequest.durationSeconds), "frame timestamps must stay within the selected video duration");
+  const sampledTimes = observedVisualRequest.frames.map(frame => frame.timestampSeconds);
+  assert.ok(sampledTimes[0] > 0 && sampledTimes[sampledTimes.length - 1] < observedVisualRequest.durationSeconds, "visual sampling should target segment interiors rather than only video endpoints");
+  assert.deepEqual(sampledTimes, [...sampledTimes].sort((a, b) => a - b), "sampled frame timestamps must be chronological");
+  assert.equal(new Set(sampledTimes).size, sampledTimes.length, "short clips must not produce duplicate frame timestamps");
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Mock integration: calm opening/);
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /restrained musical bed/);
   assert.equal(await page.locator("#exportAIPlanJSON").isEnabled(), true);
@@ -287,6 +291,30 @@ try {
   });
   await page.waitForFunction(() => (document.querySelector("#state-music")?.textContent || "").startsWith("Ready") || (document.querySelector("#state-music")?.textContent || "").startsWith("Source rejected"), null, { timeout: 20000 });
   assert.match(await page.locator("#state-music").innerText(), /^Ready\b/, "music source import failed");
+  // Autonomous editing is a reviewable plan first, with reversible explicit application.
+  await page.locator("#buildAutonomousPlan").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").startsWith("Plan generated"), null, { timeout: 5000 });
+  assert.equal(await page.locator("#applyAutonomousBalance").isDisabled(), false, "plan should enable explicit apply when source tracks are loaded");
+  assert.equal(await page.locator("#exportAutonomousPlan").isDisabled(), false, "plan JSON export should be enabled after planning");
+  const planDownloadPromise = page.waitForEvent("download", { timeout: 5000 });
+  await page.locator("#exportAutonomousPlan").click();
+  const planDownload = await planDownloadPromise;
+  assert.equal(planDownload.suggestedFilename(), "OSD-autonomous-edit-plan.json");
+  const planPath = await planDownload.path();
+  const autonomousPlan = JSON.parse(await readFile(planPath, "utf8"));
+  assert.equal(autonomousPlan.schema, "OSD-AUTONOMOUS-EDIT-PLAN-1");
+  assert.equal(autonomousPlan.mode, "recommendations_only");
+  assert.deepEqual(autonomousPlan.evidence.loadedTracks.sort(), ["dialogue", "music"]);
+  assert.equal(autonomousPlan.proposedStartingGainDb.dialogue, 0, "autonomous plan must not auto-boost dialogue");
+  const previousMusicGain = await page.locator("#gain-music").inputValue();
+  await page.locator("#applyAutonomousBalance").click();
+  assert.equal(await page.locator("#gain-music").inputValue(), "-12", "explicit conservative balance should set the proposed music starting level");
+  assert.equal(await page.locator("#gain-dialogue").inputValue(), "0", "dialogue should remain unboosted");
+  assert.equal(await page.locator("#undoAutonomousBalance").isDisabled(), false, "undo should be available after apply");
+  await page.locator("#undoAutonomousBalance").click();
+  assert.equal(await page.locator("#gain-music").inputValue(), previousMusicGain, "undo should restore prior music gain");
+  assert.equal(await page.locator("#undoAutonomousBalance").isDisabled(), true, "undo should disable after restoration");
+
   await page.locator("#solo-dialogue").click();
   await page.locator("#render").click();
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Stereo WAV created") || (document.querySelector("#message")?.textContent || "").startsWith("Mix did not complete"), null, { timeout: 20000 });
