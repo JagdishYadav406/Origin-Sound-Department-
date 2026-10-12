@@ -192,3 +192,12 @@
 - Merge triggered main verification/deploy run `38213532023` for exact commit `75b54c7df04c9c3900c6d5c6672f1198ebc62482`. Static safety and JS syntax have passed; browser dependencies are installing. Main-commit deployment is not yet confirmed.
 - Next: verify merged-main CI/deployment; then plan a separate opt-in experimental video mux/export feature with explicit warnings about codec support, real-time capture, and possible lossy re-encoding. Do not alter the original source video. Require tests for cancellation/failure, audio/video duration alignment, and output integrity before treating it as usable.
 - Galaxy A20 real-device compatibility, real AI provider operation, and direct final video export remain unverified.
+
+
+## 2026-10-12 — Confirmed latest merged web build acceptance
+
+- Re-checked merged-main web workflow `38213532023`: both `verify` and `deploy` jobs completed successfully for commit `75b54c7df04c9c3900c6d5c6672f1198ebc62482`. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38213532023
+- Verification includes static safety, inline JavaScript syntax, Chromium runtime, audio import, stereo WAV render, serialized PCM/QC, project save/load, and the newly merged 360×800 mobile-width layout assertions.
+- The parallel Android build workflow `38213532108` also completed successfully for that source commit. This only verifies CI artifact build; it is not evidence of installation or launch on the user's Galaxy A20. https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38213532108
+- Current deployment workflow is green; physical phone testing, provider-backed AI analysis, and direct final-video mux/export remain UNKNOWN / not accepted.
+- Next engineering priority: define a separately gated experimental video-export path rather than falsely claiming muxing exists. Browser MediaRecorder/canvas export would be real-time and usually lossy, codec/browser dependent, and must never overwrite the original. Acceptance must check cancellation, A/V duration alignment, generated file metadata and decode/playback; where possible, compare frame count and audio continuity. Do not ship it as production-ready without browser runtime coverage and clear output format labeling.
