@@ -180,15 +180,15 @@ try {
   }));
   assert.ok(Number.isFinite(videoReadiness.duration) && videoReadiness.duration > 0 && videoReadiness.width > 0 && videoReadiness.height > 0,
     "generated WebM fixture must decode before AI integration test: " + JSON.stringify(videoReadiness));
-  await page.waitForFunction(() => {
-    const button = document.querySelector("#analyzeVideoAI");
-    return button && !button.disabled;
-  }, null, { timeout: 15000 });
     await page.locator("#aiServiceUrl").fill("https://mock-osd-ai.example");
   await page.locator("#aiServiceToken").fill("mock-service-token");
   await page.locator("#testAIConnection").click();
   await page.waitForFunction(() => (document.querySelector("#aiConnectionStatus")?.textContent || "").includes("Service reachable and configured"), null, { timeout: 5000 });
   await page.locator("#aiUploadConsent").check();
+  await page.waitForFunction(() => {
+    const button = document.querySelector("#analyzeVideoAI");
+    return button && !button.disabled;
+  }, null, { timeout: 5000 });
   await page.locator("#analyzeVideoAI").click();
   await page.waitForFunction(() => (document.querySelector("#aiAnalysisStatus")?.textContent || "").includes("Analysis complete"), null, { timeout: 15000 });
   assert.ok(observedVisualRequest, "the frontend must POST the sampled frames to /v1/analyze");
