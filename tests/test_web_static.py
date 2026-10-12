@@ -67,7 +67,10 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn('id="aiServiceToken"', self.html)
         self.assertIn('id="aiUploadConsent"', self.html)
         self.assertIn("async function sampleVideoFrames(token)", self.inline_script)
-        self.assertIn("Math.min(8,Math.max(4,Math.ceil(duration/30)))", self.inline_script)
+        self.assertIn("const scoutCount=12", self.inline_script)
+        self.assertIn("const selected=new Set", self.inline_script)
+        self.assertIn("selected.size>=8", self.inline_script)
+        self.assertIn("frames.length", self.inline_script)
         self.assertIn("!$('aiUploadConsent').checked", self.inline_script)
         self.assertIn("original_video_file_uploaded=false", self.inline_script)
         self.assertIn("audio_uploaded=false", self.inline_script)
@@ -240,6 +243,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn(":focus-visible", self.html)
         self.assertIn("prefers-reduced-motion:reduce", self.html)
 
+
+    def test_autonomous_edit_draft_is_explicit_non_destructive_and_bounded(self):
+        for element_id in ("autonomousEdit", "buildAutonomousEdit", "applyAutonomousEdit", "exportAutonomousEdit", "clearAutonomousEdit"):
+            self.assertIn(f'id="{element_id}"', self.html)
+        self.assertIn("OSD-AUTONOMOUS-EDIT-PACKAGE", self.inline_script)
+        self.assertIn("DRAFT_NOT_EXECUTED", self.inline_script)
+        self.assertIn("time range outside selected video", self.inline_script)
+        self.assertIn("AUTONOMOUS_EDIT_CUES_STAGED", self.inline_script)
+        self.assertIn("source_media_modified=false mix_settings_modified=false", self.inline_script)
+        self.assertIn("method=local-frame-difference", self.inline_script)
+        self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
 if __name__ == "__main__":
     unittest.main()

@@ -199,6 +199,21 @@ try {
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /restrained musical bed/);
   assert.equal(await page.locator("#exportAIPlanJSON").isEnabled(), true);
   assert.equal(await page.locator("#exportAICuesCSV").isEnabled(), true);
+  assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "autonomous edit draft should enable only after video analysis completes");
+  const gainBeforeAutonomousDraft = await page.locator("#gain-dialogue").inputValue();
+  await page.locator("#buildAutonomousEdit").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Draft built"), null, { timeout: 5000 });
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 scene observations/);
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 sound cues/);
+  assert.equal(await page.locator("#exportAutonomousEdit").isEnabled(), true, "valid edit package should be exportable");
+  assert.equal(await page.locator("#applyAutonomousEdit").isEnabled(), true, "valid sound cue plan should be stageable");
+  assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "building a draft must not change mix settings");
+  await page.locator("#applyAutonomousEdit").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Cue staging complete"), null, { timeout: 5000 });
+  assert.match(await page.locator("#videoCueList").innerText(), /restrained musical bed/);
+  assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "staging cue notes must not change mix settings");
+  await page.locator("#clearVideoCues").click(); // Keep later project round-trip assertions isolated from this feature test.
+
 
   // Verify the separate, explicitly consented audio-aware request path as well.
   await page.locator("#aiAudioFile").setInputFiles({
@@ -211,6 +226,15 @@ try {
   await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Audio analysis complete"), null, { timeout: 15000 });
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Mock audio integration: speech/);
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Keep background music below the narration/);
+  assert.equal(await page.locator("#buildAutonomousEdit").isDisabled(), true, "audio-only proposals must not be aligned to the video by assumption");
+  await page.locator("#aiTimelineAligned").check();
+  assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "audio-only draft requires explicit shared-start confirmation");
+  await page.locator("#buildAutonomousEdit").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Draft built"), null, { timeout: 5000 });
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /Keep background music below the narration/);
+  await page.locator("#aiTimelineAligned").uncheck();
+  assert.equal(await page.locator("#exportAutonomousEdit").isDisabled(), true, "withdrawing alignment must invalidate an audio-based draft");
+
   await page.unroute("https://mock-osd-ai.example/**");
 
 
