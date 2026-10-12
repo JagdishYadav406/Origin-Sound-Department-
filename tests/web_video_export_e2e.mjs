@@ -141,7 +141,7 @@ try {
   await page.waitForFunction(() => !document.querySelector("#splitPictureAtPlayhead")?.disabled, null, { timeout: 5000 });
   await page.locator("#splitPictureAtPlayhead").click();
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "splitting at playhead should create two retained intervals");
-  await page.locator("#pictureTimelineList .cue-row").first().getByRole("button", { name: /Remove interval/ }).click();
+  await page.locator("#pictureTimelineList .cue-row").first().getByRole("button", { name: /Remove picture interval/ }).click();
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "removing interval should leave the selected output segment");
   const cutDownloadPromise = page.waitForEvent("download", { timeout: 15000 });
   await page.locator("#exportPictureEdits").click();
