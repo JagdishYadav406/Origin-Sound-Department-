@@ -7,6 +7,51 @@ const browser = await chromium.launch({ headless: true });
 const errors = [];
 const context = await browser.newContext({ acceptDownloads: true });
 const page = await context.newPage();
+// The AI request-contract test uses a deterministic synthetic video surface. This isolates
+// UI/payload wiring from codecs installed on the CI runner; real codec/device playback is
+// deliberately not claimed by this test.
+await page.addInitScript(() => {
+  const mediaProto = HTMLMediaElement.prototype;
+  const nativeSrc = Object.getOwnPropertyDescriptor(mediaProto, "src");
+  const fakeSources = new WeakMap();
+  const fakeTimes = new WeakMap();
+  Object.defineProperty(mediaProto, "src", {
+    configurable: true,
+    enumerable: nativeSrc.enumerable,
+    get() { return this instanceof HTMLVideoElement ? (fakeSources.get(this) || "") : nativeSrc.get.call(this); },
+    set(value) {
+      if (!(this instanceof HTMLVideoElement)) { nativeSrc.set.call(this, value); return; }
+      fakeSources.set(this, String(value));
+      queueMicrotask(() => this.dispatchEvent(new Event("loadedmetadata")));
+    }
+  });
+  for (const [name, getter] of Object.entries({
+    duration: () => 1.4, videoWidth: () => 160, videoHeight: () => 90,
+    readyState: () => HTMLMediaElement.HAVE_CURRENT_DATA, paused: () => true,
+    currentTime: function () { return fakeTimes.get(this) || 0; }
+  })) {
+    Object.defineProperty(HTMLVideoElement.prototype, name, {
+      configurable: true,
+      get: name === "currentTime" ? getter : getter
+    });
+  }
+  Object.defineProperty(HTMLVideoElement.prototype, "currentTime", {
+    configurable: true,
+    get() { return fakeTimes.get(this) || 0; },
+    set(value) {
+      fakeTimes.set(this, Number(value) || 0);
+      queueMicrotask(() => this.dispatchEvent(new Event("seeked")));
+    }
+  });
+  HTMLVideoElement.prototype.load = function () {};
+  HTMLVideoElement.prototype.pause = function () {};
+  HTMLVideoElement.prototype.play = function () { return Promise.resolve(); };
+  const drawImage = CanvasRenderingContext2D.prototype.drawImage;
+  CanvasRenderingContext2D.prototype.drawImage = function (source, ...args) {
+    if (source instanceof HTMLVideoElement) return;
+    return drawImage.call(this, source, ...args);
+  };
+});
 page.on("pageerror", error => errors.push(error.message));
 
 function makePcmWav({ seconds = 0.5, sampleRate = 44100, frequency = 120, amplitude = 0.12 } = {}) {
@@ -117,41 +162,7 @@ try {
     await route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ error: "Unexpected mock endpoint" }) });
   });
 
-  const videoBase64 = await page.evaluate(async () => {
-    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
-      throw new Error("Chromium test environment lacks canvas MediaRecorder support");
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = 160; canvas.height = 90;
-    const ctx = canvas.getContext("2d");
-    const stream = canvas.captureStream(8);
-    const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
-    const chunks = [];
-    recorder.addEventListener("dataavailable", event => { if (event.data.size) chunks.push(event.data); });
-    const stopped = new Promise(resolve => recorder.addEventListener("stop", resolve, { once: true }));
-    recorder.start();
-    const started = performance.now();
-    await new Promise(resolve => {
-      const draw = now => {
-        ctx.fillStyle = now - started < 650 ? "#163b25" : "#315b8a";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(Math.floor((now - started) % 100), 20, 20, 20);
-        if (now - started < 1400) requestAnimationFrame(draw);
-        else { recorder.stop(); stream.getTracks().forEach(track => track.stop()); resolve(); }
-      };
-      requestAnimationFrame(draw);
-    });
-    await stopped;
-    const blob = new Blob(chunks, { type: "video/webm" });
-    if (blob.size < 100) throw new Error("Generated smoke-test video is unexpectedly empty");
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error("Could not encode generated smoke-test video"));
-      reader.onload = () => resolve(String(reader.result).split(",")[1]);
-      reader.readAsDataURL(blob);
-    });
-  });
+  const videoBase64 = Buffer.from("synthetic-video-surface").toString("base64");
   await page.locator("#referenceVideo").setInputFiles({
     name: "osd-ai-contract-smoke.webm",
     mimeType: "video/webm",
