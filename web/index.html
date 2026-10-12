@@ -333,7 +333,7 @@ async function sampleVideoFrames(token){
   if(!player.paused)player.pause();
   for(let i=0;i<count;i++){
    if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
-   const t=Math.min(duration-.02,Math.max(0,duration*(i+.5)/count));
+   const t=Math.max(0,Math.min(duration-Math.min(.02,duration/(2*count)),duration*(i+.5)/count));
    $('aiAnalysisStatus').textContent=`Sampling frame ${i+1} of ${count} near the center of time segment ${i+1}, at ${t.toFixed(2)} seconds. Samples are sparse and can miss short events; no frame has been sent yet.`;
    await waitForVideoSeek(player,t,token);
    if(token!==aiAnalysisToken)throw new Error('Analysis cancelled.');
