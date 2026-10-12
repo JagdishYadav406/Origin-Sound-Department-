@@ -394,6 +394,20 @@ try {
   assert.equal(await page.locator("#mixPreview").getAttribute("class"), "stale", "outdated preview must receive warning styling");
 
 
+  // Mobile-sized layout smoke check (not a substitute for testing on the physical phone).
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.waitForTimeout(100);
+  const mobileLayout = await page.evaluate(() => ({
+    viewportWidth: document.documentElement.clientWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    renderVisible: !!document.querySelector("#render") && document.querySelector("#render").getBoundingClientRect().width > 0,
+    downloadVisible: !!document.querySelector("#downloadMix") && document.querySelector("#downloadMix").getBoundingClientRect().width > 0,
+    sourceTrackCount: document.querySelectorAll("[data-track], .track").length
+  }));
+  assert.ok(mobileLayout.renderVisible, "render control should remain visible at a 360px mobile viewport");
+  assert.ok(mobileLayout.downloadVisible, "explicit WAV download control should remain visible at a 360px mobile viewport");
+  assert.ok(mobileLayout.documentWidth <= mobileLayout.viewportWidth + 2, `mobile layout should not create page-level horizontal overflow: ${JSON.stringify(mobileLayout)}`);
+
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({
     status: "PASS",
