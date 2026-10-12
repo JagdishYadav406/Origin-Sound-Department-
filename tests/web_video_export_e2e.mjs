@@ -122,18 +122,61 @@ try {
       });
     }
     if (!Number.isFinite(video.duration) || video.duration <= 0 || video.videoWidth <= 0 || video.videoHeight <= 0) throw new Error("Exported WebM has invalid media metadata after end-seek duration resolution");
-    const stream = video.captureStream();
     await video.play();
     await new Promise(resolve => setTimeout(resolve, 150));
-    const tracks = { video: stream.getVideoTracks().length, audio: stream.getAudioTracks().length, duration: video.duration, width: video.videoWidth, height: video.videoHeight };
-    video.pause(); stream.getTracks().forEach(t => t.stop());
-    if (tracks.video < 1 || tracks.audio < 1) throw new Error("Exported WebM must contain both video and mixed-audio tracks: " + JSON.stringify(tracks));
+    const tracks = { duration: video.duration, width: video.videoWidth, height: video.videoHeight };
+    video.pause();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error("Web Audio decoder unavailable for output verification");
+    const audioContext = new AudioContextClass();
+    const audioBuffer = await audioContext.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    tracks.audioDecodedSeconds = audioBuffer.duration;
+    tracks.audioChannels = audioBuffer.numberOfChannels;
+    await audioContext.close();
+    if (tracks.width <= 0 || tracks.height <= 0 || !Number.isFinite(tracks.duration) || tracks.duration <= 0) throw new Error("Exported WebM video stream did not decode: " + JSON.stringify(tracks));
+    if (!Number.isFinite(tracks.audioDecodedSeconds) || tracks.audioDecodedSeconds <= 0 || tracks.audioChannels < 1) throw new Error("Exported WebM audio stream did not decode: " + JSON.stringify(tracks));
     if (Math.abs(tracks.duration - Number(document.querySelector("#referenceVideoPlayer").duration)) > 0.35) throw new Error("Exported video duration drifted beyond 0.35 seconds: " + JSON.stringify(tracks));
     return tracks;
   }, { base64: output.toString("base64") });
   await page.waitForFunction(() => (document.querySelector("#videoMixExportStatus")?.textContent || "").includes("WebM prepared"), null, { timeout: 5000 });
   const afterMute = await page.locator("#referenceVideoPlayer").evaluate(v => v.muted);
   assert.equal(afterMute, beforeMute, "export cleanup must restore source video mute state");
+  // Exercise a real cut export: split the source at 0.5 s, remove the first
+  // interval, and verify the new WebM contains both video and sliced mix audio.
+  await page.locator("#buildPictureTimeline").click();
+  await page.locator("#referenceVideoPlayer").evaluate(v => { v.currentTime = 0.5; });
+  await page.waitForFunction(() => !document.querySelector("#splitPictureAtPlayhead")?.disabled, null, { timeout: 5000 });
+  await page.locator("#splitPictureAtPlayhead").click();
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "splitting at playhead should create two retained intervals");
+  await page.locator("#pictureTimelineList .cue-row").first().getByRole("button", { name: /Remove picture interval/ }).click();
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "removing interval should leave the selected output segment");
+  const cutDownloadPromise = page.waitForEvent("download", { timeout: 15000 });
+  await page.locator("#exportPictureEdits").click();
+  const cutDownload = await cutDownloadPromise;
+  assert.match(cutDownload.suggestedFilename(), /-OSD-picture-edits\.webm$/, "picture edit should export as a separate file");
+  const cutStream = await cutDownload.createReadStream();
+  const cutParts = [];
+  for await (const part of cutStream) cutParts.push(part);
+  const cutOutput = Buffer.concat(cutParts);
+  assert.ok(cutOutput.length > 1000, "edited WebM should contain encoded output");
+  const cutTracks = await page.evaluate(async ({ base64 }) => {
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const video = document.createElement("video"); video.muted = true; video.src = URL.createObjectURL(new Blob([bytes], { type: "video/webm" }));
+    document.body.appendChild(video);
+    await new Promise((resolve, reject) => { video.addEventListener("loadedmetadata", resolve, { once: true }); video.addEventListener("error", () => reject(new Error("Cut WebM failed to decode")), { once: true }); video.load(); });
+    await video.play(); await new Promise(resolve => setTimeout(resolve, 150));
+    const result = { duration: video.duration, width: video.videoWidth, height: video.videoHeight };
+    video.pause();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext; const ac = new AudioContextClass();
+    const audio = await ac.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    result.audioDuration = audio.duration; result.audioChannels = audio.numberOfChannels;
+    await ac.close(); URL.revokeObjectURL(video.src); video.remove(); return result;
+  }, { base64: cutOutput.toString("base64") });
+  assert.ok(cutTracks.width > 0 && cutTracks.height > 0, "cut WebM must decode a video stream");
+  assert.ok(cutTracks.audioDuration > 0 && cutTracks.audioChannels >= 1, "cut WebM must decode matching mix audio");
+  assert.ok(cutTracks.duration < loadedDuration - 0.2 && cutTracks.duration > loadedDuration - 0.8, "cut WebM duration should reflect the removed source interval: " + JSON.stringify(cutTracks));
+  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Edited WebM prepared"), null, { timeout: 5000 });
+
   assert.deepEqual(errors, [], "uncaught page errors: " + errors.join("; "));
   console.log(JSON.stringify({ status: "PASS", realGeneratedVideoFixture: "PASS", realWavRender: "PASS", explicitWebmDownload: "PASS", exportedWebmMetadataAndDecode: "PASS", outputContainsVideoAndAudioTracks: "PASS", outputDurationChecked: "PASS", sourceMuteStateRestored: "PASS", outputBytes: output.length, fixtureDurationSeconds: fixture.duration }, null, 2));
 } finally {
