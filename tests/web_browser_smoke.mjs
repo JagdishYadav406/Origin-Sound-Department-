@@ -140,8 +140,8 @@ try {
         analysis: {
           ...mockAiAnalysis,
           summary: "Mock audio integration: speech with a restrained musical bed.",
-          scenes: [{ ...mockAiAnalysis.scenes[0], description: "Speech over a continuous tonal bed.", visible_evidence: "AUDIBLE evidence: speech and a tonal bed are present." }],
-          cues: [{ ...mockAiAnalysis.cues[0], description: "Keep background music below the narration.", rationale: "Mock audio response verifies the audio-aware UI path." }],
+          scenes: [{ ...mockAiAnalysis.scenes[0], start_seconds: 0, end_seconds: Math.min(0.4, audioBody.durationSeconds), description: "Speech over a continuous tonal bed.", visible_evidence: "AUDIBLE evidence: speech and a tonal bed are present." }],
+          cues: [{ ...mockAiAnalysis.cues[0], start_seconds: 0, end_seconds: Math.min(0.4, audioBody.durationSeconds), description: "Keep background music below the narration.", rationale: "Mock audio response verifies the audio-aware UI path." }],
           limitations: ["Mock response only; this is not a real AI model result."]
         }
       }) });
