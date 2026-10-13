@@ -177,6 +177,8 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("const duckDepthDb=obj.master", self.inline_script)
         self.assertIn("const duckThresholdDb=obj.master", self.inline_script)
         self.assertIn("async function validateWebmExportBlob(blob,expectedDuration)", self.inline_script)
+        self.assertIn("timed out validating exported WebM metadata", self.inline_script)
+        self.assertIn("probe.addEventListener('loadedmetadata',loaded)", self.inline_script)
         self.assertIn("containerSignature:'UNKNOWN'", self.inline_script)
         self.assertIn("avSync:'NOT_MEASURED'", self.inline_script)
         self.assertIn("downloadCompletion:'UNVERIFIABLE'", self.inline_script)
