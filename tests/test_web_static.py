@@ -335,6 +335,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("no AI model", self.inline_script)
         self.assertIn("local-frame-difference", self.inline_script)
 
+    def test_free_pretrained_visual_classifier_runs_locally_without_paid_api(self):
+        self.assertIn('id="runLocalVisualModel"', self.html)
+        self.assertIn("$('runLocalVisualModel').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("getFreeMobileNet()", self.inline_script)
+        self.assertIn("mobilenet.load({version:2,alpha:0.5})", self.inline_script)
+        self.assertIn("model.classify(canvas,3)", self.inline_script)
+        self.assertIn("LOCAL_MOBILENET_ANALYSIS_COMPLETE", self.inline_script)
+        self.assertIn("upload=false paid_api=false", self.inline_script)
+        self.assertIn("pretrained image classifier", self.inline_script.lower())
+        self.assertIn("Video frames are classified inside this browser and are not uploaded", self.inline_script)
+
     def test_no_credit_local_audio_analysis_uses_browser_signal_processing(self):
         self.assertIn('id="runLocalAudioAnalysis"', self.html)
         self.assertIn("$('runLocalAudioAnalysis').addEventListener('click',async()=>{", self.inline_script)
