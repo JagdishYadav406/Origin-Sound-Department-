@@ -496,6 +496,71 @@ $('analyzeAudioAI').addEventListener('click',async()=>{
  }catch(err){if(token!==aiAnalysisToken){log('AI_AUDIO_ANALYSIS_RESPONSE_DISCARDED_AFTER_CANCEL=true');return}$('audioAIStatus').textContent=`Audio AI analysis failed: ${err.message||err}`;log(`AI_AUDIO_ANALYSIS_FAILED reason=${JSON.stringify(String(err.message||err))} result_claimed=false`)}
  finally{if(objectUrl)URL.revokeObjectURL(objectUrl);if(aiAnalysisTimer)clearTimeout(aiAnalysisTimer);aiAnalysisTimer=null;aiAnalysisController=null;aiAnalyzing=false;$('cancelVideoAI').disabled=true;$('analyzeAudioAI').disabled=!$('aiAudioFile').files?.[0]||!$('aiAudioConsent').checked;updateAIAnalyzeButton();updateCombineAIButton();updateAutonomousEditControls()}
 });
+
+function localPlanResult(mode,duration,scenes,cues,limitations){
+ return {status:'completed',requestId:'local-'+Date.now(),model:'OSD local heuristic analysis · no AI model · no network',durationSeconds:duration,sampledFrameTimesSeconds:mode==='local-visual'?scenes.map(x=>x.start_seconds):[],analysis:{summary:mode==='local-visual'?'Local frame-difference scan completed. It can estimate visual change points but cannot understand objects, story, emotion, or actual sounds.':'Local audio-envelope scan completed. It measures decoded signal levels; it does not transcribe speech or identify sound events.',scenes,cues,limitations:[...limitations,'This result was computed locally in the browser. No API, AI model, account, credits, or media upload was used.']}}
+}
+$('runLocalVideoAnalysis').addEventListener('click',async()=>{
+ const player=$('referenceVideoPlayer'),duration=videoMetadata?.duration;
+ if(!videoFile||!Number.isFinite(duration)||duration<=0||duration>600||!player.videoWidth||!player.videoHeight){$('aiAnalysisStatus').textContent='Choose a playable video up to 10 minutes long first.';return}
+ const button=$('runLocalVideoAnalysis');button.disabled=true;$('aiAnalysisStatus').textContent='Running local frame-change scan. Nothing will be uploaded.';
+ const priorTime=player.currentTime,wasPaused=player.paused,canvas=document.createElement('canvas');let token=++aiAnalysisToken,ctx=canvas.getContext('2d',{willReadFrequently:true});
+ try{
+  if(!ctx)throw Error('Canvas pixel analysis is unavailable in this browser.');
+  const scale=Math.min(1,128/player.videoWidth,128/player.videoHeight);canvas.width=Math.max(1,Math.round(player.videoWidth*scale));canvas.height=Math.max(1,Math.round(player.videoHeight*scale));
+  if(!wasPaused)player.pause();
+  const count=Math.min(24,Math.max(6,Math.ceil(duration/3))),rows=[];let prev=null;
+  for(let i=0;i<count;i++){
+   if(token!==aiAnalysisToken)throw Error('Local scan cancelled.');
+   const time=Math.min(duration-.01,duration*i/count);
+   $('aiAnalysisStatus').textContent='Local video scan: frame '+(i+1)+'/'+count+' · no upload';
+   await waitForVideoSeek(player,Math.max(0,time),token);ctx.drawImage(player,0,0,canvas.width,canvas.height);
+   const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;let score=0,n=0;
+   if(prev){for(let p=0;p<pixels.length;p+=16){score+=Math.abs(pixels[p]-prev[p])+Math.abs(pixels[p+1]-prev[p+1])+Math.abs(pixels[p+2]-prev[p+2]);n+=3}}
+   rows.push({time:Math.max(0,time),change:n?score/(n*255):0});prev=pixels;
+  }
+  const values=rows.slice(1).map(x=>x.change),mean=values.reduce((a,b)=>a+b,0)/Math.max(1,values.length),sd=Math.sqrt(values.reduce((a,b)=>a+(b-mean)**2,0)/Math.max(1,values.length));
+  const threshold=Math.max(.08,mean+sd*.8),events=[];let last=-Infinity;
+  for(const r of rows.slice(1)){if(r.change>=threshold&&r.time-last>=Math.max(1,duration/count*.7)){events.push(r);last=r.time}}
+  const scenes=events.slice(0,60).map((r,i)=>({start_seconds:r.time,end_seconds:Math.min(duration,r.time+Math.max(.5,duration/count)),description:'Possible visual transition or substantial frame change.',visible_evidence:'Local pixel difference score '+(r.change*100).toFixed(1)+'%; heuristic threshold '+(threshold*100).toFixed(1)+'%.',mood:'UNKNOWN',energy:'UNKNOWN',confidence:Math.min(.75,Math.max(.2,.3+r.change*.5)),source:'local-frame-difference'}));
+  const cues=events.slice(0,60).map(r=>({category:'transition',start_seconds:Math.max(0,r.time-.12),end_seconds:Math.min(duration,r.time+.55),description:'Optional short transition accent; review against the actual picture and soundtrack.',rationale:'A local frame-change heuristic found a possible visual change here; this does not establish what sound belongs here.',search_terms:['subtle transition accent','soft whoosh','short cinematic transition'],confidence:Math.min(.7,Math.max(.2,.25+r.change*.45)),source:'local-frame-difference'}));
+  if(duration>0)cues.unshift({category:'music',start_seconds:0,end_seconds:duration,description:'Optional continuous music-bed planning placeholder; choose style and level manually.',rationale:'Generic editing suggestion only; frame pixels cannot reveal genre, dialogue, or emotional meaning.',search_terms:['instrumental underscore','cinematic ambient bed'],confidence:.2,source:'generic-local-rule'});
+  const result=localPlanResult('local-visual',duration,scenes,cues,['No semantic visual model is running. A low frame-difference score can miss cuts; flashes, camera movement, and animation can create false positives.','Sound and music suggestions are generic placeholders, not scene-understanding results.']);
+  aiVisualLastResult=result;aiCombinedLastResult=null;aiLastResult=result;aiLastMode='local-visual';renderAIResult(result,'visual');updateCombineAIButton();updateAutonomousEditControls();
+  $('aiAnalysisStatus').textContent='Free local video scan complete. '+events.length+' possible frame-change point(s); no media uploaded. This is heuristic analysis, not generative AI.';
+  log('LOCAL_VIDEO_HEURISTIC_COMPLETE duration_seconds='+duration.toFixed(3)+' sampled_frames='+count+' possible_changes='+events.length+' upload=false ai_model_used=false');
+ }catch(err){$('aiAnalysisStatus').textContent='Local video scan failed: '+String(err.message||err);log('LOCAL_VIDEO_HEURISTIC_FAILED reason='+JSON.stringify(String(err.message||err))+' upload=false')}
+ finally{try{player.currentTime=priorTime}catch(_){}if(!wasPaused)try{await player.play()}catch(_){}button.disabled=false}
+});
+$('runLocalAudioAnalysis').addEventListener('click',async()=>{
+ const file=$('aiAudioFile').files?.[0];if(!file){$('audioAIStatus').textContent='Choose an audio file first.';return}
+ const button=$('runLocalAudioAnalysis');button.disabled=true;$('audioAIStatus').textContent='Decoding and measuring audio locally. No upload.';
+ let context;
+ try{
+  if(file.size>150*1024*1024)throw Error('File exceeds the 150 MiB local-analysis limit.');
+  const C=window.AudioContext||window.webkitAudioContext;if(!C)throw Error('Web Audio decoding is unavailable.');
+  context=new C();const buffer=await context.decodeAudioData((await file.arrayBuffer()).slice(0));
+  if(buffer.duration>600)throw Error('For memory safety, local analysis is limited to 10 minutes.');
+  const rate=buffer.sampleRate,channels=Math.min(2,buffer.numberOfChannels),hop=Math.max(1,Math.floor(rate)),windows=[];
+  for(let start=0;start<buffer.length;start+=hop){
+   let sum=0,count=0,peak=0,end=Math.min(buffer.length,start+hop);
+   for(let ch=0;ch<channels;ch++){const data=buffer.getChannelData(ch);for(let i=start;i<end;i++){const v=data[i];sum+=v*v;peak=Math.max(peak,Math.abs(v));count++}}
+   const rms=Math.sqrt(sum/Math.max(1,count)),db=rms>0?20*Math.log10(rms):-120;
+   windows.push({start_seconds:start/rate,end_seconds:end/rate,db,peak});
+   if(windows.length>601)throw Error('Too many windows; choose a shorter clip.');
+  }
+  const sorted=windows.map(w=>w.db).sort((a,b)=>a-b),median=sorted[Math.floor(sorted.length/2)]??-120;
+  const scenes=windows.map(w=>({start_seconds:w.start_seconds,end_seconds:w.end_seconds,description:w.db<median-12?'Relatively low-level audio window.':w.db>median+8?'Relatively high-level audio window.':'Audio-level measurement window.',visible_evidence:'Measured RMS '+w.db.toFixed(1)+' dBFS; peak sample '+(w.peak>0?20*Math.log10(w.peak):-120).toFixed(1)+' dBFS.',mood:'UNKNOWN',energy:w.db>median+8?'higher measured level':w.db<median-12?'lower measured level':'near local median level',confidence:1,source:'decoded-audio-signal-measurement'}));
+  const cues=[];
+  for(const w of windows){if(w.db<=-45)cues.push({category:'silence',start_seconds:w.start_seconds,end_seconds:w.end_seconds,description:'Low-level span: audition before deciding whether it is silence, quiet ambience, or soft performance.',rationale:'Measured RMS is at or below -45 dBFS; level alone cannot identify the sound.',search_terms:['low-level audio review'],confidence:1,source:'decoded-audio-signal-measurement'});else if(w.db>median+10)cues.push({category:'dialogue',start_seconds:w.start_seconds,end_seconds:w.end_seconds,description:'High-level span to audition for transient peaks or level changes; not confirmed dialogue.',rationale:'Measured RMS is more than 10 dB above the clip median; the signal may be music or effects.',search_terms:['level change review','peak audition'],confidence:.45,source:'decoded-audio-signal-measurement'})}
+  const result=localPlanResult('local-audio',buffer.duration,scenes.slice(0,120),cues.slice(0,120),['No speech recognition or sound-event classifier is used. High level does not prove dialogue; low level does not prove silence.']);
+  result.sampledFrameTimesSeconds=[];result.model='OSD local signal analysis · no AI model · no network';
+  aiAudioLastResult=result;aiCombinedLastResult=null;aiLastResult=result;aiLastMode='audio';renderAIResult(result,'audio');updateCombineAIButton();updateAutonomousEditControls();
+  $('audioAIStatus').textContent='Free local audio measurement complete for '+buffer.duration.toFixed(1)+' seconds. No upload, account, AI model, or credits used.';
+  log('LOCAL_AUDIO_HEURISTIC_COMPLETE duration_seconds='+buffer.duration.toFixed(3)+' windows='+windows.length+' cues='+cues.length+' upload=false ai_model_used=false');
+ }catch(err){$('audioAIStatus').textContent='Local audio analysis failed: '+String(err.message||err);log('LOCAL_AUDIO_HEURISTIC_FAILED reason='+JSON.stringify(String(err.message||err))+' upload=false')}
+ finally{if(context)try{await context.close()}catch(_){}button.disabled=false}
+});
 $('testAIConnection').addEventListener('click',async()=>{
  const base=$('aiServiceUrl').value.trim().replace(/\/+$/,'');
  let endpoint;
