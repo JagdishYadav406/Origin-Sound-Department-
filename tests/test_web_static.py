@@ -344,7 +344,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertLess(release, load_model)
         self.assertIn("const durationSeconds=decoded.duration", self.inline_script)
         self.assertIn("await context.close();context=null", self.inline_script)
-        self.assertIn("durationSeconds:durationSeconds", self.inline_script)
+        self.assertIn("durationSeconds,sampledFrameTimesSeconds:[]", self.inline_script)
 
     def test_audio_classifier_validates_duration_before_loading_model(self):
         handler = self.inline_script.index("$('runLocalAudioModel').addEventListener('click',async()=>{")
