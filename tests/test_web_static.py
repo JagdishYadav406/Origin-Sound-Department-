@@ -335,6 +335,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("no AI model", self.inline_script)
         self.assertIn("local-frame-difference", self.inline_script)
 
+    def test_free_local_audio_event_classifier_is_separate_and_no_upload(self):
+        self.assertIn('id="runLocalAudioModel"', self.html)
+        self.assertIn("$('runLocalAudioModel').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("@huggingface/transformers@3.8.1", self.inline_script)
+        self.assertIn("ast-finetuned-audioset-10-10-0.4593-ONNX", self.inline_script)
+        self.assertIn("dtype:'q4'", self.inline_script)
+        self.assertIn("LOCAL_AUDIOSET_CLASSIFICATION_COMPLETE", self.inline_script)
+        self.assertIn("upload=false paid_api=false", self.inline_script)
+        self.assertIn("audio is decoded and classified in this browser", self.inline_script.lower())
+        self.assertIn("PRETRAINED AUDIO CLASSIFIER · REVIEW LABELS", self.inline_script)
+
     def test_free_pretrained_visual_classifier_runs_locally_without_paid_api(self):
         self.assertIn('id="runLocalVisualModel"', self.html)
         self.assertIn("$('runLocalVisualModel').addEventListener('click',async()=>{", self.inline_script)
