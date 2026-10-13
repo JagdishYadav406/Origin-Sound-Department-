@@ -326,6 +326,29 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("OSD_SERVICE_TOKEN", self.html)
         self.assertIn("No media is sent until you press Analyze", self.html)
 
+
+    def test_no_credit_local_video_analysis_is_explicit_and_does_not_upload(self):
+        self.assertIn('id="runLocalVideoAnalysis"', self.html)
+        self.assertIn("$('runLocalVideoAnalysis').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("LOCAL_VIDEO_HEURISTIC_COMPLETE", self.inline_script)
+        self.assertIn("no media uploaded", self.inline_script.lower())
+        self.assertIn("no AI model", self.inline_script)
+        self.assertIn("local-frame-difference", self.inline_script)
+
+    def test_no_credit_local_audio_analysis_uses_browser_signal_processing(self):
+        self.assertIn('id="runLocalAudioAnalysis"', self.html)
+        self.assertIn("$('runLocalAudioAnalysis').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("decodeAudioData", self.inline_script)
+        self.assertIn("LOCAL_AUDIO_HEURISTIC_COMPLETE", self.inline_script)
+        self.assertIn("No upload, account, AI model, or credits used.", self.inline_script)
+        self.assertIn("MEASURED / HEURISTIC RESULT · NOT SEMANTIC AI", self.inline_script)
+
+    def test_paid_connected_ai_is_optional_and_separate_from_local_mode(self):
+        self.assertIn("Connected generative AI requires a separately configured provider and may cost money.", self.html)
+        self.assertIn("For a zero-credit path, use the local analysis buttons below", self.html)
+        self.assertIn("runLocalVideoAnalysis", self.html)
+        self.assertIn("runLocalAudioAnalysis", self.html)
+
 if __name__ == "__main__":
     unittest.main()
     def test_original_source_previews_are_separate_from_rendered_mix(self):
