@@ -294,6 +294,31 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("importedPicture.segments.length>200", self.inline_script)
         self.assertIn("Picture intervals must be sorted and non-overlapping", self.inline_script)
 
+
+    def test_tool_navigation_targets_exist_and_video_outputs_are_separate(self):
+        nav = re.search(r'<nav class="feature-nav"[^>]*>(.*?)</nav>', self.html, re.S)
+        self.assertIsNotNone(nav)
+        targets = re.findall(r'href="#([^"]+)"', nav.group(1))
+        ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
+        self.assertTrue(targets)
+        self.assertTrue(set(targets).issubset(ids), "broken feature navigation: " + repr(sorted(set(targets) - ids)))
+        self.assertIn('id="sourceSection"', self.html)
+        self.assertIn('<section class="panel" id="pictureEditWorkspace"', self.html)
+        self.assertIn('id="editedVideoPlayer"', self.html)
+        self.assertIn('id="editedVideoState"', self.html)
+        self.assertIn("function showEditedVideoOutput(blob,label)", self.inline_script)
+        self.assertIn("showEditedVideoOutput(blob,'Edited video + current mix')", self.inline_script)
+        self.assertIn("showEditedVideoOutput(blob,'Edited picture timeline')", self.inline_script)
+        self.assertIn("source_unchanged=true", self.inline_script)
+
+    def test_ai_service_setup_points_to_existing_deployment_files_and_discloses_prerequisites(self):
+        self.assertIn('id="aiServiceSetup"', self.html)
+        self.assertIn('https://render.com/', self.html)
+        self.assertIn('/tree/feature/separate-media-tool-workspaces/ai-service', self.html)
+        self.assertIn("OPENAI_API_KEY", self.html)
+        self.assertIn("OSD_SERVICE_TOKEN", self.html)
+        self.assertIn("No media is sent until you press Analyze", self.html)
+
 if __name__ == "__main__":
     unittest.main()
     def test_original_source_previews_are_separate_from_rendered_mix(self):
