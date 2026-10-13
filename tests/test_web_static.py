@@ -335,6 +335,16 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("no AI model", self.inline_script)
         self.assertIn("local-frame-difference", self.inline_script)
 
+    def test_audio_classifier_validates_duration_before_loading_model(self):
+        handler = self.inline_script.index("$('runLocalAudioModel').addEventListener('click',async()=>{")
+        decode = self.inline_script.index("await context.decodeAudioData", handler)
+        duration_guard = self.inline_script.index("decoded.duration>90", decode)
+        load_model = self.inline_script.index("const classifier=await getFreeAudioClassifier()", handler)
+        self.assertLess(decode, duration_guard)
+        self.assertLess(duration_guard, load_model)
+        self.assertIn("segment=padded", self.inline_script)
+        self.assertIn("new Float32Array(chunkSamples)", self.inline_script)
+
     def test_short_final_audio_classifier_segment_is_padded_for_model_input(self):
         self.assertIn("let segment=mono.slice(start,end)", self.inline_script)
         self.assertIn("segment=padded", self.inline_script)
