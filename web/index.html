@@ -628,8 +628,8 @@ $('runLocalAudioModel').addEventListener('click',async()=>{
   if(decoded.duration>90)throw Error('Audio model analysis is limited to 90 seconds.');
   const mono=resampleMonoTo16k(decoded),sampleRate=16000,chunkSamples=sampleRate*10,totalChunks=Math.min(9,Math.max(1,Math.ceil(mono.length/chunkSamples))),scenes=[],cues=[];
   for(let i=0;i<totalChunks;i++){
-   const start=i*chunkSamples,end=Math.min(mono.length,start+chunkSamples),segment=mono.slice(start,end);
-   if(segment.length<sampleRate){const padded=new Float32Array(sampleRate);padded.set(segment);segment.set(padded.subarray(0,segment.length))}
+   const start=i*chunkSamples,end=Math.min(mono.length,start+chunkSamples);let segment=mono.slice(start,end);
+   if(segment.length<sampleRate){const padded=new Float32Array(sampleRate);padded.set(segment);segment=padded}
    $('audioAIStatus').textContent='Free local audio model: classifying segment '+(i+1)+'/'+totalChunks+' · no upload';
    const predictions=await classifier(segment,{top_k:5});
    const labels=(Array.isArray(predictions)?predictions:[]).map(p=>({label:String(p.label||'unknown'),score:Number(p.score)||0}));
