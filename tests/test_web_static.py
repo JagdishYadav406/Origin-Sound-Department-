@@ -324,7 +324,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn('/tree/feature/separate-media-tool-workspaces/ai-service', self.html)
         self.assertIn("OPENAI_API_KEY", self.html)
         self.assertIn("OSD_SERVICE_TOKEN", self.html)
-        self.assertIn("No media is sent until you press Analyze", self.html)
+        self.assertIn("No media is sent to the connected service until you press its Analyze button", self.html)
 
 
     def test_no_credit_local_video_analysis_is_explicit_and_does_not_upload(self):
