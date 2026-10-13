@@ -335,6 +335,11 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("no AI model", self.inline_script)
         self.assertIn("local-frame-difference", self.inline_script)
 
+    def test_short_final_audio_classifier_segment_is_padded_for_model_input(self):
+        self.assertIn("let segment=mono.slice(start,end)", self.inline_script)
+        self.assertIn("segment=padded", self.inline_script)
+        self.assertNotIn("segment.set(padded.subarray(0,segment.length))", self.inline_script)
+
     def test_free_local_audio_event_classifier_is_separate_and_no_upload(self):
         self.assertIn('id="runLocalAudioModel"', self.html)
         self.assertIn("$('runLocalAudioModel').addEventListener('click',async()=>{", self.inline_script)
