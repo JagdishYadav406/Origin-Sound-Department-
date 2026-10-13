@@ -1,0 +1,47 @@
+name: OSD Real Browser Model Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osd-real-model-validation
+  cancel-in-progress: true
+
+jobs:
+  real-model-inference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout selected branch or ref
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Playwright
+        run: npm install --no-save playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Serve exact OSD web source
+        run: |
+          python3 -m http.server 4173 --directory . > /tmp/osd-real-model-server.log 2>&1 &
+          echo $! > /tmp/osd-real-model-server.pid
+          python3 - <<'PY'
+          import time
+          import urllib.request
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:4173/web/index.html", timeout=1) as response:
+                      if response.status == 200:
+                          print("OSD local server ready")
+                          break
+              except Exception:
+                  time.sleep(0.25)
+          else:
+              raise SystemExit("OSD local server did not become ready")
+          PY
+      - name: Run actual browser-local MobileNet inference
+        run: node tests/web_real_model_inference.mjs
