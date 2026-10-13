@@ -238,7 +238,15 @@ try {
   // Exercise the free, browser-local classifier button end-to-end with a deterministic
   // mock Transformers module. This tests UI wiring, decoded-audio preprocessing, result
   // rendering, and failure-free cleanup without downloading model weights in CI.
-  let localModelCalls = 0;
+    await page.locator("#aiAudioFile").setInputFiles({
+    name: "osd-local-ai-smoke.wav",
+    mimeType: "audio/wav",
+    buffer: makePcmWav()
+  });
+  await page.waitForFunction(() => {
+    const el = document.querySelector("#runLocalAudioModel");
+    return el && !el.disabled;
+  });
   await page.route("**/@huggingface/transformers@3.8.1*", async route => {
     await route.fulfill({
       status: 200,
