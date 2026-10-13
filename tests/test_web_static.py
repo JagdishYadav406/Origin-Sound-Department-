@@ -335,6 +335,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("no AI model", self.inline_script)
         self.assertIn("local-frame-difference", self.inline_script)
 
+    def test_audio_classifier_releases_decoded_buffer_before_model_load(self):
+        handler = self.inline_script.index("$('runLocalAudioModel').addEventListener('click',async()=>{")
+        decode = self.inline_script.index("await context.decodeAudioData", handler)
+        release = self.inline_script.index("decoded=null", decode)
+        load_model = self.inline_script.index("const classifier=await getFreeAudioClassifier()", handler)
+        self.assertLess(decode, release)
+        self.assertLess(release, load_model)
+        self.assertIn("const durationSeconds=decoded.duration", self.inline_script)
+        self.assertIn("await context.close();context=null", self.inline_script)
+        self.assertIn("durationSeconds:durationSeconds", self.inline_script)
+
     def test_audio_classifier_validates_duration_before_loading_model(self):
         handler = self.inline_script.index("$('runLocalAudioModel').addEventListener('click',async()=>{")
         decode = self.inline_script.index("await context.decodeAudioData", handler)
