@@ -235,6 +235,24 @@ try {
   await page.locator("#aiTimelineAligned").uncheck();
   assert.equal(await page.locator("#exportAutonomousEdit").isDisabled(), true, "withdrawing alignment must invalidate an audio-based draft");
 
+  // Exercise the free, browser-local classifier button end-to-end with a deterministic
+  // mock Transformers module. This tests UI wiring, decoded-audio preprocessing, result
+  // rendering, and failure-free cleanup without downloading model weights in CI.
+  let localModelCalls = 0;
+  await page.route("**/@huggingface/transformers@3.8.1*", async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/javascript; charset=utf-8",
+      body: "export function pipeline(){return async function(){return [{label:'Speech',score:0.91},{label:'Music',score:0.42}]}}"
+    });
+  });
+  await page.locator("#runLocalAudioModel").click();
+  await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Free local audio model complete"), null, { timeout: 15000 });
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /Speech/);
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /local-audioset|AudioSet classifier/i);
+  assert.match(await page.locator("#audioAIStatus").innerText(), /No upload or paid API/i);
+  await page.unroute("**/@huggingface/transformers@3.8.1*");
+
   await page.unroute("https://mock-osd-ai.example/**");
 
 
