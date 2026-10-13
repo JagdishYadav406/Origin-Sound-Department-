@@ -343,7 +343,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("dtype:'q4'", self.inline_script)
         self.assertIn("LOCAL_AUDIOSET_CLASSIFICATION_COMPLETE", self.inline_script)
         self.assertIn("upload=false paid_api=false", self.inline_script)
-        self.assertIn("audio is decoded and classified in this browser", self.inline_script.lower())
+        self.assertIn("audio samples are decoded and classified in this browser", self.inline_script.lower())
         self.assertIn("PRETRAINED AUDIO CLASSIFIER · REVIEW LABELS", self.inline_script)
 
     def test_free_pretrained_visual_classifier_runs_locally_without_paid_api(self):
