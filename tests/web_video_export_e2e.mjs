@@ -124,6 +124,7 @@ try {
   const outcome = await Promise.race([downloadPromise, qcFailurePromise]);
   if (outcome.kind === "qc-failure") throw new Error("Export QC rejected the output: " + outcome.status);
   if (outcome.kind !== "download") throw new Error("Export produced no download and no explicit QC rejection: " + outcome.error);
+  const download = outcome.download;
   assert.match(download.suggestedFilename(), /-OSD-mix\.webm$/, "export must download a new WebM rather than overwrite the source");
   const stream = await download.createReadStream();
   const parts = [];
