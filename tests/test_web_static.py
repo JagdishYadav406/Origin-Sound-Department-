@@ -397,8 +397,6 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("runLocalVideoAnalysis", self.html)
         self.assertIn("runLocalAudioAnalysis", self.html)
 
-if __name__ == "__main__":
-    unittest.main()
     def test_original_source_previews_are_separate_from_rendered_mix(self):
         for name in ("dialogue", "music", "sfx", "ambience"):
             self.assertIn(f'id="original-preview-{name}"', self.html)
@@ -409,3 +407,5 @@ if __name__ == "__main__":
         self.assertIn('id="mixPlayer" controls', self.html)
         self.assertIn("source files are not overwritten", self.html)
 
+if __name__ == "__main__":
+    unittest.main()
