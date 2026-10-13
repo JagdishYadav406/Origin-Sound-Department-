@@ -620,16 +620,17 @@ $('runLocalAudioModel').addEventListener('click',async()=>{
  const button=$('runLocalAudioModel');let context;
  button.disabled=true;aiAnalyzing=true;updateAIAnalyzeButton();$('analyzeAudioAI').disabled=true;$('runLocalAudioAnalysis').disabled=true;$('runLocalVisualModel').disabled=true;
  try{
-  $('audioAIStatus').textContent='Loading the free audio-classification runtime and quantized model. The model download may be large; first use needs internet. No paid API or credits.';
-  const classifier=await getFreeAudioClassifier();
   const C=window.AudioContext||window.webkitAudioContext;if(!C)throw Error('Web Audio decoding is unavailable in this browser.');
   context=new C();
+  $('audioAIStatus').textContent='Decoding and checking the selected audio before downloading the model.';
   const decoded=await context.decodeAudioData((await file.arrayBuffer()).slice(0));
-  if(decoded.duration>90)throw Error('Audio model analysis is limited to 90 seconds.');
+  if(!Number.isFinite(decoded.duration)||decoded.duration<=0||decoded.duration>90)throw Error('Audio model analysis is limited to valid audio up to 90 seconds.');
   const mono=resampleMonoTo16k(decoded),sampleRate=16000,chunkSamples=sampleRate*10,totalChunks=Math.min(9,Math.max(1,Math.ceil(mono.length/chunkSamples))),scenes=[],cues=[];
+  $('audioAIStatus').textContent='Loading the free audio-classification runtime and quantized model. The model download may be large; first use needs internet. No paid API or credits.';
+  const classifier=await getFreeAudioClassifier();
   for(let i=0;i<totalChunks;i++){
    const start=i*chunkSamples,end=Math.min(mono.length,start+chunkSamples);let segment=mono.slice(start,end);
-   if(segment.length<sampleRate){const padded=new Float32Array(sampleRate);padded.set(segment);segment=padded}
+   if(segment.length<chunkSamples){const padded=new Float32Array(chunkSamples);padded.set(segment);segment=padded}
    $('audioAIStatus').textContent='Free local audio model: classifying segment '+(i+1)+'/'+totalChunks+' · no upload';
    const predictions=await classifier(segment,{top_k:5});
    const labels=(Array.isArray(predictions)?predictions:[]).map(p=>({label:String(p.label||'unknown'),score:Number(p.score)||0}));
