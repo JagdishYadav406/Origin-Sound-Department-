@@ -390,6 +390,15 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("sampledFrameTimesSeconds:Array.isArray(aiLastResult.sampledFrameTimesSeconds)?aiLastResult.sampledFrameTimesSeconds.slice(0,500)", self.inline_script)
         self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
+    def test_autonomous_picture_plan_rejects_timeline_changes_since_draft(self):
+        self.assertIn("function autonomousPictureTimelineKey(){return JSON.stringify(pictureSegments.map(x=>[x.start,x.end]))}", self.inline_script)
+        self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("autonomousEditDraftContext.pictureTimelineKey!==autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("existing edits were preserved", self.inline_script)
+        self.assertIn("Preparation blocked: the picture timeline changed after this plan was built", self.inline_script)
+        self.assertIn("pictureTimelineKey!==autonomousPictureTimelineKey()){$('autonomousEditStatus').textContent='Preparation blocked", self.inline_script)
+        self.assertIn("pictureSegments=segments;autonomousEditDraftContext.pictureTimelineKey=autonomousPictureTimelineKey()", self.inline_script)
+
     def test_picture_edit_timeline_is_bounded_and_non_destructive(self):
         for element_id in ("pictureEditTimeline", "buildPictureTimeline", "splitPictureAtPlayhead", "resetPictureTimeline", "undoPictureEdit", "exportPictureEdits", "cancelPictureEditExport"):
             self.assertIn(f'id="{element_id}"', self.html)
