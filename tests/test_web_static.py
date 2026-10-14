@@ -247,6 +247,10 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("No current local sample-level scan exists", self.inline_script)
         self.assertIn("Track evidence is stale because a source file changed", self.inline_script)
 
+    def test_autonomous_draft_requires_fresh_signal_evidence_when_tracks_are_loaded(self):
+        self.assertIn("trackEvidenceReady=!loadedTracks||autonomousTrackEvidenceIsCurrent()", self.inline_script)
+        self.assertIn("Run a fresh local sample scan of the loaded tracks before building a precision-focused draft", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
