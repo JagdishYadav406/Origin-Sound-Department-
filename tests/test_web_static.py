@@ -227,6 +227,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("autonomousEditDraft.toolCoverage", self.inline_script)
         self.assertIn("processing_settings_changed=false source_media_modified=false", self.inline_script)
 
+    def test_ambiguous_autonomous_cues_are_not_auto_routed(self):
+        self.assertIn("function recommendTrackForCategory(category)", self.inline_script)
+        self.assertIn("'manual-review'", self.inline_script)
+        self.assertIn("Choose track manually — category unclear", self.inline_script)
+        self.assertIn("No automatic track assignment", self.inline_script)
+        self.assertIn("Safe preparation partially completed", self.inline_script)
+        self.assertIn("candidate row(s)", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
