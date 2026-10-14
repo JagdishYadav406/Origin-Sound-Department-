@@ -396,6 +396,10 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("sampledFrameTimesSeconds:Array.isArray(aiLastResult.sampledFrameTimesSeconds)?aiLastResult.sampledFrameTimesSeconds.slice(0,500)", self.inline_script)
         self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
+    def test_picture_timeline_render_refreshes_autonomous_draft_controls(self):
+        self.assertIn("updatePictureTimelineControls();updateAutonomousEditControls();return}", self.inline_script)
+        self.assertIn("host.appendChild(row)});updatePictureTimelineControls();updateAutonomousEditControls()}", self.inline_script)
+
     def test_autonomous_draft_becomes_stale_after_manual_picture_timeline_change(self):
         self.assertIn("c.pictureTimelineKey===autonomousPictureTimelineKey()", self.inline_script)
         self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)

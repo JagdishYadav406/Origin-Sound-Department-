@@ -219,6 +219,22 @@ try {
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "scene boundaries should create two retained picture intervals in the synthetic fixture");
   assert.match(await page.locator("#autonomousEditStatus").innerText(), /no mix settings or source media were changed/);
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "workspace preparation must not change mix settings");
+  // Runtime regression: manual picture-timeline edits must invalidate the draft,
+  // and the guided runner must rebuild it before another preparation pass.
+  await page.locator('#pictureTimelineList button[aria-label^="Remove picture interval"]').first().click();
+  assert.equal(await page.locator("#exportAutonomousEdit").isDisabled(), true,
+    "manual picture timeline edits must make the previous autonomous draft non-exportable");
+  assert.equal(await page.locator("#prepareAutonomousWorkspaces").isDisabled(), true,
+    "manual picture timeline edits must block staging from the stale draft");
+  await page.locator("#continueAutonomousWorkflow").click();
+  assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Built a fresh draft from current source and evidence/,
+    "runner must rebuild after a manual picture timeline change");
+  assert.equal(await page.locator("#autonomousTrackReviewConfirmed").isChecked(), false,
+    "picture-timeline draft rebuild must reset prior review approvals");
+  await page.locator("#prepareAutonomousWorkspaces").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Safe preparation finished"), null, { timeout: 5000 });
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2,
+    "fresh preparation should stage the current plan again after rebuilding");
   // A mix-control change must invalidate the prepared draft; the runner may rebuild,
   // but must not continue with the old approval state or stale tool snapshot.
   const changedDialogueGain = String(Math.min(12, Number(gainBeforeAutonomousDraft) + 1));
