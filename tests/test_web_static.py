@@ -197,7 +197,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Draft is stale: source, analysis, mode, or audio alignment changed", self.inline_script)
         self.assertIn("function captureAutonomousToolState()", self.inline_script)
         self.assertIn("autonomousToolStateMatches(c.toolState)", self.inline_script)
-        self.assertIn("mix settings, track sources, extra clips, and local library state", self.html)
+        self.assertIn("every mix control, loaded track source, extra clip, and local sound-library index", self.html)
         self.assertIn("limitSkipped", self.inline_script)
         self.assertIn("Source video, audio tracks and mix settings are unchanged.", self.inline_script)
 
