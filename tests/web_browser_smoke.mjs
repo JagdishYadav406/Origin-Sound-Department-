@@ -218,6 +218,21 @@ try {
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "scene boundaries should create two retained picture intervals in the synthetic fixture");
   assert.match(await page.locator("#autonomousEditStatus").innerText(), /no mix settings or source media were changed/);
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "workspace preparation must not change mix settings");
+  // A mix-control change must invalidate the prepared draft; the runner may rebuild,
+  // but must not continue with the old approval state or stale tool snapshot.
+  const changedDialogueGain = String(Math.min(12, Number(gainBeforeAutonomousDraft) + 1));
+  await page.locator("#gain-dialogue").fill(changedDialogueGain);
+  assert.equal(await page.locator("#exportAutonomousEdit").isDisabled(), true,
+    "changing a mix control must make the previous autonomous draft non-exportable");
+  assert.equal(await page.locator("#prepareAutonomousWorkspaces").isDisabled(), true,
+    "changing a mix control must block staging from the stale draft");
+  await page.locator("#continueAutonomousWorkflow").click();
+  assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Built a fresh draft from current source and evidence/,
+    "runner should rebuild from current state rather than use a stale draft");
+  assert.equal(await page.locator("#autonomousTrackReviewConfirmed").isChecked(), false,
+    "rebuilding a draft must reset prior review approvals");
+  await page.locator("#prepareAutonomousWorkspaces").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Safe preparation finished"), null, { timeout: 5000 });
   await page.locator("#continueAutonomousWorkflow").click();
   assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Review checkpoint: inspect each loaded source preview/);
   assert.equal(await page.locator("#render").isDisabled(), true, "autonomous runner must not render before the track-review checkpoint");
