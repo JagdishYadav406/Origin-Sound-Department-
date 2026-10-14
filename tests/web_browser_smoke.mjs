@@ -197,6 +197,7 @@ try {
   assert.ok(observedVisualRequest.frames.every(frame => Number.isFinite(frame.timestampSeconds) && frame.timestampSeconds >= 0 && frame.timestampSeconds <= observedVisualRequest.durationSeconds), "frame timestamps must stay within the selected video duration");
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Mock integration: calm opening/);
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /restrained musical bed/);
+
   assert.equal(await page.locator("#exportAIPlanJSON").isEnabled(), true);
   assert.equal(await page.locator("#exportAICuesCSV").isEnabled(), true);
   assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "autonomous edit draft should enable only after video analysis completes");

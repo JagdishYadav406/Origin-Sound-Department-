@@ -274,6 +274,16 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("autonomousWorkflowPackageExportedFor=null;autonomousWorkflowProjectSaveFor=null;autonomousWorkflowReportPreparedFor=null", self.inline_script)
         self.assertLess(self.inline_script.index("if(!autonomousWorkflowReportPreparedFor"), self.inline_script.index("if(autonomousWorkflowPackageExportedFor"))
 
+    def test_autonomous_safety_trim_is_opt_in_attenuation_only(self):
+        self.assertIn('id="autonomousSafetyTrimEnabled"', self.html)
+        self.assertIn("function autonomousSafetyTrimTarget(peakDb,current,min,step)", self.inline_script)
+        self.assertIn("!$('autonomousSafetyTrimEnabled').checked", self.inline_script)
+        self.assertIn("observedPeakDbfs:peakDb", self.inline_script)
+        self.assertIn("targetSamplePeakHeadroomDb:1", self.inline_script)
+        self.assertIn("other_processors_changed=false", self.inline_script)
+        self.assertIn("if(tryAutonomousSafetyTrim())", self.inline_script)
+        self.assertIn("safety-only automatic master attenuation", self.html)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
