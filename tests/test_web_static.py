@@ -253,6 +253,27 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("trackEvidenceReady=!loadedTracks||autonomousTrackEvidenceIsCurrent()", self.inline_script)
         self.assertIn("Run a fresh local sample scan of the loaded tracks before building a precision-focused draft", self.inline_script)
 
+    def test_autonomous_workflow_runner_gates_render_export_and_evidence(self):
+        self.assertIn('id="continueAutonomousWorkflow"', self.html)
+        self.assertIn('id="autonomousTrackReviewConfirmed"', self.html)
+        self.assertIn('id="autonomousMixPreviewReviewed"', self.html)
+        self.assertIn('id="autonomousFinalExportApproved"', self.html)
+        self.assertIn('id="autonomousOutputPlaybackReviewed"', self.html)
+        self.assertIn("function continueAutonomousWorkflow()", self.inline_script)
+        self.assertIn("autonomousWorkflowPreparedDraft!==autonomousEditDraft", self.inline_script)
+        self.assertIn("QC gate blocked export", self.inline_script)
+        self.assertIn("Output validation is still pending", self.inline_script)
+        self.assertIn("PROJECT_SAVE_FAILED", self.inline_script)
+        self.assertIn("EVIDENCE_REPORT_PREPARED", self.inline_script)
+        self.assertIn("download receipt is not independently verified", self.inline_script)
+        self.assertIn("autonomousWorkflowFinalApprovalContext", self.inline_script)
+        self.assertIn("approval.segmentsKey!==segmentsKey", self.inline_script)
+        self.assertIn("Final-export approval expired because the mix or picture timeline changed", self.inline_script)
+        self.assertIn("current render passed PCM-structure checks", self.inline_script)
+        self.assertIn("project JSON and QC evidence report prepared", self.inline_script)
+        self.assertIn("autonomousWorkflowPackageExportedFor=null;autonomousWorkflowProjectSaveFor=null;autonomousWorkflowReportPreparedFor=null", self.inline_script)
+        self.assertLess(self.inline_script.index("if(!autonomousWorkflowReportPreparedFor"), self.inline_script.index("if(autonomousWorkflowPackageExportedFor"))
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
