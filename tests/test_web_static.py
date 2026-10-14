@@ -271,6 +271,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Final-export approval expired because the mix or picture timeline changed", self.inline_script)
         self.assertIn("current render passed PCM-structure checks", self.inline_script)
         self.assertIn("project JSON and QC evidence report prepared", self.inline_script)
+        self.assertIn("autonomousWorkflowPackageExportedFor=null;autonomousWorkflowProjectSaveFor=null;autonomousWorkflowReportPreparedFor=null", self.inline_script)
         self.assertLess(self.inline_script.index("if(!autonomousWorkflowReportPreparedFor"), self.inline_script.index("if(autonomousWorkflowPackageExportedFor"))
 
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
