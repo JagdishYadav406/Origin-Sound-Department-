@@ -271,12 +271,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Output validation is still pending", self.inline_script)
         self.assertIn("PROJECT_SAVE_FAILED", self.inline_script)
         self.assertIn("EVIDENCE_REPORT_PREPARED", self.inline_script)
-        self.assertIn("download receipt is not independently verified", self.inline_script)
+        self.assertIn("user confirmation of downloaded file pending", self.inline_script)
+        self.assertIn("download confirmation pending", self.inline_script)
         self.assertIn("autonomousWorkflowFinalApprovalContext", self.inline_script)
         self.assertIn("approval.segmentsKey!==segmentsKey", self.inline_script)
         self.assertIn("Final-export approval expired because the mix or picture timeline changed", self.inline_script)
         self.assertIn("current render passed PCM-structure checks", self.inline_script)
-        self.assertIn("project JSON and QC evidence report prepared", self.inline_script)
+        self.assertIn("project JSON confirmed by user; QC evidence report prepared; download confirmation pending", self.inline_script)
         self.assertIn("autonomousWorkflowPackageExportedFor=null;autonomousWorkflowProjectSaveFor=null;autonomousWorkflowReportPreparedFor=null", self.inline_script)
         self.assertLess(self.inline_script.index("if(!autonomousWorkflowReportPreparedFor"), self.inline_script.index("if(autonomousWorkflowPackageExportedFor"))
         self.assertIn("Guided workflow reached its final checkpoint", self.inline_script)
@@ -551,6 +552,12 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("For a zero-credit path, use the local analysis buttons below", self.html)
         self.assertIn("runLocalVideoAnalysis", self.html)
         self.assertIn("runLocalAudioAnalysis", self.html)
+
+    def test_autonomous_workflow_requires_explicit_download_confirmation(self):
+        self.assertIn('id="autonomousDownloadConfirmed"', self.html)
+        self.assertIn("if(autonomousPendingDownloadConfirmation){if(!$('autonomousDownloadConfirmed').checked)", self.inline_script)
+        self.assertIn("user confirmation of downloaded file pending", self.inline_script)
+        self.assertIn("download confirmation pending", self.inline_script)
 
     def test_original_source_previews_are_separate_from_rendered_mix(self):
         for name in ("dialogue", "music", "sfx", "ambience"):

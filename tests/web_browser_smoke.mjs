@@ -223,6 +223,8 @@ try {
     picturePass: "PASS", missingCreated: "UNKNOWN", zeroByteOutput: "UNKNOWN", missingByteCount: "UNKNOWN", missingQc: "UNKNOWN",
     wrongMode: "UNKNOWN", failed: "FAIL", conflictingEvidence: "FAIL", unknownMode: "UNKNOWN"
   }, "autonomous export evidence must fail closed on missing, mismatched, or failed evidence");
+  assert.equal(await page.locator("#autonomousDownloadConfirmed").isChecked(), false, "download receipt must require explicit user confirmation");
+  assert.match(await page.locator("label").filter({ has: page.locator("#autonomousDownloadConfirmed") }).innerText(), /confirmed.*present in Downloads.*opens correctly/i);
   assert.equal(await page.locator("#exportAutonomousEdit").isEnabled(), true, "valid edit package should be exportable");
   assert.equal(await page.locator("#applyAutonomousEdit").isEnabled(), true, "valid sound cue plan should be stageable");
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "building a draft must not change mix settings");
