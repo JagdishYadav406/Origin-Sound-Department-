@@ -596,7 +596,7 @@ try {
   // Picture timeline must restore only for the exact source content, not matching metadata alone.
   const originalVideoBytes = Buffer.from("synthetic-video-surface");
   const chunkHash = createHash("sha256").update(originalVideoBytes).digest("hex");
-  const videoManifest = `OSD-CHUNKED-SHA256-V1\\nsize=${originalVideoBytes.length}\\nchunkBytes=4194304\\nchunks=1\\n${chunkHash}`;
+  const videoManifest = `OSD-CHUNKED-SHA256-V1\nsize=${originalVideoBytes.length}\nchunkBytes=4194304\nchunks=1\n${chunkHash}`;
   const videoFingerprint = createHash("sha256").update(videoManifest).digest("hex");
   const pictureProject = { ...project, pictureTimeline: {
     source: { ...project.pictureTimeline.source, name: "osd-ai-contract-smoke.webm", size: originalVideoBytes.length, durationSeconds: 1.4, fingerprint: videoFingerprint, fingerprintAlgorithm: "OSD-CHUNKED-SHA256-V1" },
