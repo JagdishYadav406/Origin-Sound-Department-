@@ -396,6 +396,12 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("sampledFrameTimesSeconds:Array.isArray(aiLastResult.sampledFrameTimesSeconds)?aiLastResult.sampledFrameTimesSeconds.slice(0,500)", self.inline_script)
         self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
+    def test_autonomous_draft_becomes_stale_after_manual_picture_timeline_change(self):
+        self.assertIn("c.pictureTimelineKey===autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("pictureSegments=segments;autonomousEditDraftContext.pictureTimelineKey=autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("if(!autonomousEditDraftIsCurrent())", self.inline_script)
+
     def test_autonomous_picture_plan_rejects_timeline_changes_since_draft(self):
         self.assertIn("function autonomousPictureTimelineKey(){return JSON.stringify(pictureSegments.map(x=>[x.start,x.end]))}", self.inline_script)
         self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)
