@@ -605,7 +605,8 @@ try {
   await page.locator("#loadProjectFile").setInputFiles({ name: "osd-picture-roundtrip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(pictureProject)) });
   await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Project settings loaded"), null, { timeout: 10000 });
   await page.locator("#referenceVideo").setInputFiles({ name: "osd-ai-contract-smoke.webm", mimeType: "video/webm", buffer: originalVideoBytes });
-  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline restored"), null, { timeout: 10000 });
+  await page.waitForFunction(() => { const status = document.querySelector("#pictureTimelineStatus")?.textContent || ""; return status.includes("Saved picture timeline restored") || status.includes("Saved picture timeline not restored"); }, null, { timeout: 10000 });
+  assert.match(await page.locator("#pictureTimelineStatus").innerText(), /Saved picture timeline restored/, "exact source fingerprint should restore saved intervals; actual status: " + await page.locator("#pictureTimelineStatus").innerText());
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "exact source fingerprint should restore saved picture intervals");
   assert.match(await page.locator("#pictureTimelineList").innerText(), /00:00\.200.*00:00\.700/s);
 
