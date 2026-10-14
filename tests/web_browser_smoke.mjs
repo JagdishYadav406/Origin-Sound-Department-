@@ -206,6 +206,18 @@ try {
   await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Draft built"), null, { timeout: 5000 });
   assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 scene observations/);
   assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 sound cues/);
+  const exportEvidenceStates = await page.evaluate(() => ({
+    picturePass: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=PASS evidence={}\\nPICTURE_EDIT_EXPORT_CREATED bytes=123"),
+    missingCreated: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=PASS evidence={}"),
+    missingQc: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_CREATED bytes=123"),
+    wrongMode: autonomousExportEvidenceState("video-mix", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123"),
+    failed: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=FAIL"),
+    unknownMode: autonomousExportEvidenceState("unverified", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123")
+  }));
+  assert.deepEqual(exportEvidenceStates, {
+    picturePass: "PASS", missingCreated: "UNKNOWN", missingQc: "UNKNOWN",
+    wrongMode: "UNKNOWN", failed: "FAIL", unknownMode: "UNKNOWN"
+  }, "autonomous export evidence must fail closed on missing, mismatched, or failed evidence");
   assert.equal(await page.locator("#exportAutonomousEdit").isEnabled(), true, "valid edit package should be exportable");
   assert.equal(await page.locator("#applyAutonomousEdit").isEnabled(), true, "valid sound cue plan should be stageable");
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "building a draft must not change mix settings");
