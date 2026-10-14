@@ -316,6 +316,15 @@ try {
   await page.waitForFunction(() => !document.querySelector("#render")?.disabled, null, { timeout: 5000 });
   assert.match(await page.locator("#log").innerText(), /SOURCE_MEMORY_PREFLIGHT/);
   assert.match(await page.locator("#log").innerText(), /SOURCE_MEMORY_POST_DECODE_CHECK.*passed=true/);
+  assert.equal(await page.locator("#analyzeAutonomousTracks").isEnabled(), true, "track evidence should be available once a decoded source is loaded");
+  const dialogueGainBeforeTrackScan = await page.locator("#gain-dialogue").inputValue();
+  await page.locator("#analyzeAutonomousTracks").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousTrackEvidenceStatus")?.textContent || "").includes("Signal evidence complete"), null, { timeout: 10000 });
+  assert.match(await page.locator("#autonomousTrackEvidenceResults").innerText(), /DIALOGUE · osd-smoke-dialogue\.wav/);
+  assert.match(await page.locator("#autonomousTrackEvidenceResults").innerText(), /Sample peak:/);
+  assert.match(await page.locator("#autonomousTrackEvidenceResults").innerText(), /true peak/);
+  assert.equal(await page.locator("#gain-dialogue").inputValue(), dialogueGainBeforeTrackScan, "signal analysis must not alter processing settings");
+  assert.match(await page.locator("#log").innerText(), /AUTONOMOUS_TRACK_EVIDENCE_COMPLETE.*source_upload=false processing_settings_changed=false/);
 
   let unexpectedRenderDownloads = 0;
   const countUnexpectedRenderDownload = () => { unexpectedRenderDownloads += 1; };
