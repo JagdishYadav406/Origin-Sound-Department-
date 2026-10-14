@@ -897,7 +897,7 @@ $('loadProjectClipFiles').addEventListener('change',async ev=>{
     const m=manifest[i];let index=-1;
     for(let j=0;j<files.length;j++){if(used.has(j))continue;const f=files[j];if(f.name===m.name&&f.size===m.size&&(!m.lastModified||f.lastModified===m.lastModified)){index=j;break}}
     if(index<0)throw Error('Missing or metadata-mismatched source clip: '+m.name);
-    const file=files[index];used.add(index);const bytes=await file.arrayBuffer();let hash=null;
+    const file=files[index];used.add(index);if(existingBytes+file.size*2+32*MiB>budgetBytes())throw Error("Clip file exceeds the conservative memory budget; no project changes were applied.");const bytes=await file.arrayBuffer();let hash=null;
     try{hash=await sha256Hex(bytes)}catch{}
     if(m.sha256&&(!hash||hash.toLowerCase()!==String(m.sha256).toLowerCase()))throw Error('SHA-256 mismatch for clip '+m.name+'. Choose the exact original file.');
     if(file.size!==m.size)throw Error('File size mismatch for clip '+m.name+'.');
