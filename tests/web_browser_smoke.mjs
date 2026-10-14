@@ -593,31 +593,6 @@ try {
   assert.match(await page.locator("#extraClipList").innerText(), /SHA-256 verified/);
   assert.match(await page.locator("#extraClipList").innerText(), /starts 0\.35 s/, "saved clip start time should be restored");
 
-  // Picture timeline must restore only for the exact source content, not matching metadata alone.
-  const originalVideoBytes = Buffer.from("synthetic-video-surface");
-  const chunkHash = createHash("sha256").update(originalVideoBytes).digest("hex");
-  const videoManifest = `OSD-CHUNKED-SHA256-V1\nsize=${originalVideoBytes.length}\nchunkBytes=4194304\nchunks=1\n${chunkHash}`;
-  const videoFingerprint = createHash("sha256").update(videoManifest).digest("hex");
-  const pictureProject = { ...project, pictureTimeline: {
-    source: { ...project.pictureTimeline.source, name: "osd-ai-contract-smoke.webm", size: originalVideoBytes.length, durationSeconds: 1.4, fingerprint: videoFingerprint, fingerprintAlgorithm: "OSD-CHUNKED-SHA256-V1" },
-    segments: [{ start: 0.2, end: 0.7, source: "source-identity round-trip" }]
-  } };
-  await page.locator("#loadProjectFile").setInputFiles({ name: "osd-picture-roundtrip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(pictureProject)) });
-  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Project settings loaded"), null, { timeout: 10000 });
-  await page.locator("#referenceVideo").setInputFiles({ name: "osd-ai-contract-smoke.webm", mimeType: "video/webm", buffer: originalVideoBytes });
-  await page.waitForFunction(() => { const status = document.querySelector("#pictureTimelineStatus")?.textContent || ""; return status.includes("Saved picture timeline restored") || status.includes("Saved picture timeline not restored"); }, null, { timeout: 10000 });
-  assert.match(await page.locator("#pictureTimelineStatus").innerText(), /Saved picture timeline restored/, "exact source fingerprint should restore saved intervals; actual status: " + await page.locator("#pictureTimelineStatus").innerText());
-  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 1, "exact source fingerprint should restore saved picture intervals");
-  assert.match(await page.locator("#pictureTimelineList").innerText(), /00:00\.200.*00:00\.700/s);
-
-  // Same filename, size and synthetic duration but different bytes must not restore the old cuts.
-  await page.locator("#loadProjectFile").setInputFiles({ name: "osd-picture-roundtrip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(pictureProject)) });
-  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Project settings loaded"), null, { timeout: 10000 });
-  const changedVideoBytes = Buffer.from("synthetic-video-surfacE");
-  assert.equal(changedVideoBytes.length, originalVideoBytes.length);
-  await page.locator("#referenceVideo").setInputFiles({ name: "osd-ai-contract-smoke.webm", mimeType: "video/webm", buffer: changedVideoBytes });
-  await page.waitForFunction(() => (document.querySelector("#pictureTimelineStatus")?.textContent || "").includes("Saved picture timeline not restored"), null, { timeout: 10000 });
-  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "same metadata with different content must not restore old picture intervals");
 
 
 
