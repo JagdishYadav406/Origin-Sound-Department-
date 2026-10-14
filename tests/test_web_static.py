@@ -298,6 +298,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("$('combineAIResults').click()", self.inline_script)
         self.assertIn("shared 00:00 start is not confirmed", self.inline_script)
 
+    def test_autonomous_tool_coverage_refreshes_after_workspace_preparation(self):
+        self.assertIn("data-tool-coverage-id", self.inline_script)
+        self.assertIn("function refreshAutonomousToolCoverageDisplay()", self.inline_script)
+        self.assertIn("refreshAutonomousToolCoverageDisplay();updateAutonomousEditControls()", self.inline_script)
+        self.assertIn("AUTONOMOUS_WORKSPACES_PREPARED", self.inline_script)
+        self.assertIn("processing_settings_changed=false source_media_modified=false", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
