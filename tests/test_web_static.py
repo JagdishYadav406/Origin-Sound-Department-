@@ -563,7 +563,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn('id="loadProjectClipFiles"', self.html)
         self.assertIn("pendingProjectClipManifest=obj", self.inline_script)
         self.assertIn("SHA-256 mismatch for clip", self.inline_script)
-        self.assertIn("decoded duration does not match saved clip", self.inline_script)
+        self.assertIn("Decoded duration does not match saved clip", self.inline_script)
         self.assertIn("pendingRestoredProjectClips=prepared", self.inline_script)
         self.assertIn("existingBytes+file.size*2+32*MiB>budgetBytes()", self.inline_script)
         self.assertIn("timeline_clips_restored=${extraClips.length}", self.inline_script)
