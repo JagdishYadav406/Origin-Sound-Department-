@@ -552,6 +552,12 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("runLocalVideoAnalysis", self.html)
         self.assertIn("runLocalAudioAnalysis", self.html)
 
+    def test_autonomous_workflow_requires_explicit_download_confirmation(self):
+        self.assertIn('id="autonomousDownloadConfirmed"', self.html)
+        self.assertIn("if(autonomousPendingDownloadConfirmation){if(!$('autonomousDownloadConfirmed').checked)", self.inline_script)
+        self.assertIn("user confirmation of downloaded file pending", self.inline_script)
+        self.assertIn("download confirmation pending", self.inline_script)
+
     def test_original_source_previews_are_separate_from_rendered_mix(self):
         for name in ("dialogue", "music", "sfx", "ambience"):
             self.assertIn(f'id="original-preview-{name}"', self.html)
