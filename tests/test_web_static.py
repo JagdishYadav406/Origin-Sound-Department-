@@ -266,6 +266,9 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("PROJECT_SAVE_FAILED", self.inline_script)
         self.assertIn("EVIDENCE_REPORT_PREPARED", self.inline_script)
         self.assertIn("download receipt is not independently verified", self.inline_script)
+        self.assertIn("autonomousWorkflowFinalApprovalContext", self.inline_script)
+        self.assertIn("approval.segmentsKey!==segmentsKey", self.inline_script)
+        self.assertIn("Final-export approval expired because the mix or picture timeline changed", self.inline_script)
 
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
