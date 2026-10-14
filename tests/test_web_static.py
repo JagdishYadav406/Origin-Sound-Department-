@@ -262,7 +262,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("function continueAutonomousWorkflow()", self.inline_script)
         self.assertIn("autonomousWorkflowPreparedDraft!==autonomousEditDraft", self.inline_script)
         self.assertIn("QC gate blocked export", self.inline_script)
-        self.assertIn("No new edited output was confirmed", self.inline_script)
+        self.assertIn("Output validation is still pending", self.inline_script)
         self.assertIn("PROJECT_SAVE_FAILED", self.inline_script)
         self.assertIn("EVIDENCE_REPORT_PREPARED", self.inline_script)
         self.assertIn("download receipt is not independently verified", self.inline_script)
