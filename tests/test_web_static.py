@@ -256,7 +256,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
     def test_autonomous_export_evidence_gate_is_mode_specific_and_fail_closed(self):
         self.assertIn("function autonomousExportEvidenceState(mode,logText)", self.inline_script)
         self.assertIn("if(new URLSearchParams(location.search).has('osdTestHooks'))window.__osdAutonomousExportEvidenceState=autonomousExportEvidenceState", self.inline_script)
-        self.assertIn("if(qc&&created)return 'PASS';return failed?'FAIL':'UNKNOWN'", self.inline_script)
+        self.assertIn("if(failed)return 'FAIL';if(qc&&created)return 'PASS';return 'UNKNOWN'", self.inline_script)
         self.assertIn("qcState=autonomousExportEvidenceState", self.inline_script)
     def test_autonomous_workflow_runner_gates_render_export_and_evidence(self):
         self.assertIn('id="continueAutonomousWorkflow"', self.html)
