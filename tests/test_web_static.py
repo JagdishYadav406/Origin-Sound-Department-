@@ -198,6 +198,16 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("limitSkipped", self.inline_script)
         self.assertIn("Source video, audio tracks and mix settings are unchanged.", self.inline_script)
 
+    def test_autonomous_edit_plan_stages_reviewable_picture_boundaries_without_removing_footage(self):
+        self.assertIn('id="stageAutonomousPicturePlan"', self.html)
+        self.assertIn("pictureEditPlan:{method:'AI scene-boundary staging; not a semantic cut decision'", self.inline_script)
+        self.assertIn("defaultAction:'KEEP_ALL_SOURCE_INTERVALS'", self.inline_script)
+        self.assertIn("executed:false", self.inline_script)
+        self.assertIn("function buildPictureTimeline()", self.inline_script)
+        self.assertIn("buildPictureTimeline();$('autonomousEditStatus').textContent='AI scene boundaries staged", self.inline_script)
+        self.assertIn("all_source_intervals_retained=true source_media_modified=false", self.inline_script)
+        self.assertIn("All source intervals remain included", self.html)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
