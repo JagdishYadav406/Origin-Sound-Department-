@@ -559,6 +559,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("user confirmation of downloaded file pending", self.inline_script)
         self.assertIn("download confirmation pending", self.inline_script)
 
+    def test_picture_timeline_restore_requires_matching_video_content_fingerprint(self):
+        self.assertIn("VIDEO_SOURCE_FINGERPRINT_READY", self.inline_script)
+        self.assertIn("fingerprintMatches&&metadataCompatible", self.inline_script)
+        self.assertIn("PICTURE_TIMELINE_RESTORE_BLOCKED", self.inline_script)
+        self.assertIn("Saved picture timeline not restored", self.inline_script)
+        self.assertIn("Saved picture timeline restored", self.inline_script)
+
     def test_project_loader_relinks_and_verifies_additional_timeline_clips(self):
         self.assertIn('id="loadProjectClipFiles"', self.html)
         self.assertIn("pendingProjectClipManifest=obj", self.inline_script)

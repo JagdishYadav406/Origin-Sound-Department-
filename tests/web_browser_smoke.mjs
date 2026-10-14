@@ -595,6 +595,7 @@ try {
 
 
 
+
   // Mobile-sized layout smoke check (not a substitute for testing on the physical phone).
   await page.setViewportSize({ width: 360, height: 800 });
   await page.waitForTimeout(100);
