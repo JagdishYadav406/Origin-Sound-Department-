@@ -411,6 +411,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("importedPicture.segments.length>200", self.inline_script)
         self.assertIn("Picture intervals must be sorted and non-overlapping", self.inline_script)
 
+    
+    def test_autonomous_picture_plan_rejects_timeline_changes_since_draft(self):
+        self.assertIn("function autonomousPictureTimelineKey(){return JSON.stringify(pictureSegments.map(x=>[x.start,x.end]))}", self.inline_script)
+        self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("autonomousEditDraftContext.pictureTimelineKey!==autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("existing edits were preserved", self.inline_script)
+        self.assertIn("pictureSegments=segments;autonomousEditDraftContext.pictureTimelineKey=autonomousPictureTimelineKey()", self.inline_script)
 
     def test_tool_navigation_targets_exist_and_video_outputs_are_separate(self):
         nav = re.search(r'<nav class="feature-nav"[^>]*>(.*?)</nav>', self.html, re.S)
