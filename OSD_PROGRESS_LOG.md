@@ -25,3 +25,16 @@ Entries are chronological. Add new entries at the bottom; do not edit or delete 
 - Tested artifact merge commit: 75ab6ff26621f6509d0ae034c6534ede13d84db7 (PR merge ref). APK size: 109,381,736 bytes. APK SHA-256: 0dd0211f4b7ddc79b263c1a4e4af786357a7e114f5a9929db7ba14dd9499103e. Source archive SHA-256: 2a0e2bd986f7f3a048733ce3090ca2f614c3e1651229f9ee6de080360e62ad6a.
 - Independently downloaded the artifact ZIP and extracted the APK in the current working session; ZIP integrity and APK SHA-256 match were verified locally. APK contains DEX, AndroidManifest, Chaquopy assets, and native libraries for arm64-v8a and x86_64.
 - Still UNKNOWN: install/launch on the user's phone, whether Android FFmpeg calls run correctly end-to-end on-device, media output playback, QC behavior on representative files, export usability, and whether installation over an existing build is signature-compatible. Do not mark OSD complete until these are tested.
+
+
+## 2026-10-10 — Main-branch release artifact independently inspected
+
+- Exact main commit: `205d0dd54b3ed0077a7c557dd72f4d606baac75f`.
+- GitHub Actions run #34 / ID `38054865623`: `success`; workflow: [OSD Android Build](https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38054865623).
+- Python regression tests: 12 passed in CI; independently rerun against the exact source archive: 12/12 passed.
+- APK: `app-release.apk`, 109,381,736 bytes; SHA-256 `195325aee6f101c39fe3410b692239be8007a58d9ea783dafddb0903f34fd69f`.
+- Artifact ZIP ID `11670379466`, name `OSD-1.20.0-205d0dd54b3ed0077a7c557dd72f4d606baac75f`, size 51,645,556 bytes; downloaded ZIP SHA-256 matches GitHub's recorded digest `c855dcf77549c3c5739db0b2ac3cfc5510e2f54cca79c0db8e4e64ff5a3c9307`.
+- APK checksum and source archive checksum both verified locally; source archive listing succeeded. CI reports APK signature verification passed.
+- Evidence explicitly says `device_install_test=NOT_RUN_BY_CI` and `full_audio_workflow_test=NOT_RUN_BY_CI`.
+- Remaining UNKNOWN: install/launch on Samsung Galaxy A20, real-file import, on-device FFmpeg processing, QC measurements, playback, user-selected export, and failure handling.
+- No release-complete claim is made. Next acceptance step requires physical-device testing of this exact APK and recording results.

@@ -49,3 +49,14 @@ The repository audit also found a version mismatch: the latest successful Androi
 - Main branch at audit time: `f0ec11968531cdb9575a6c77e4ddb50e8351c8f3`; candidate fixes above were not yet merged into main.
 
 Append new checkpoint entries; do not rewrite this historical record.
+
+
+## Checkpoint addendum — 2026-10-10 main build independently verified
+
+- Main commit: `205d0dd54b3ed0077a7c557dd72f4d606baac75f`.
+- Successful run: [#34 / 38054865623](https://github.com/JagdishYadav406/Origin-Sound-Department-/actions/runs/38054865623).
+- Artifact: `OSD-1.20.0-205d0dd54b3ed0077a7c557dd72f4d606baac75f`, ID `11670379466`, expires 2027-01-08.
+- APK SHA-256: `195325aee6f101c39fe3410b692239be8007a58d9ea783dafddb0903f34fd69f`; size 109,381,736 bytes.
+- Independently downloaded artifact ZIP digest matched GitHub's digest; APK and source archive checksum manifests passed; archive listing passed; all 12 Python tests passed in a local rerun.
+- The CI workflow reports APK signature verification success. These results prove artifact/build integrity, not device behavior.
+- Device install/launch and the complete real-audio workflow remain UNKNOWN until tested on the Samsung Galaxy A20. Do not declare full functionality before import, processing, QC evidence, playback, export and failure cases pass.
