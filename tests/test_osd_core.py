@@ -108,3 +108,91 @@ class DeliveryGateTests(unittest.TestCase):
             self.assertFalse(ready.exists())
             self.assertFalse(blocked.exists())
 
+
+
+class MultiTrackMixTests(unittest.TestCase):
+    def _compatibility(self, stems):
+        return {
+            "checks": {"all_pass": True},
+            "streams": [{"sample_rate": 48000, "channels": 2}],
+        }
+
+    @patch.object(core, "_run")
+    @patch.object(core, "stem_compatibility")
+    def test_mix_uses_explicit_gains_without_amix_normalization(self, compat, run):
+        compat.return_value = self._compatibility(["dialogue.wav", "music.wav"])
+        core.mix_stems(
+            ["dialogue.wav", "music.wav"],
+            "mixed.wav",
+            roles=["Dialogue", "Music"],
+            gains=[-3.0, -9.0],
+        )
+        cmd = run.call_args.args[0]
+        filter_complex = cmd[cmd.index("-filter_complex") + 1]
+        self.assertIn("volume=-3.0000dB", filter_complex)
+        self.assertIn("volume=-9.0000dB", filter_complex)
+        self.assertIn("normalize=0", filter_complex)
+        self.assertIn("pcm_f32le", cmd)
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_wrong_gain_count(self, compat):
+        compat.return_value = self._compatibility(["a.wav", "b.wav"])
+        with self.assertRaisesRegex(core.OSDRunError, "Gain count"):
+            core.mix_stems(["a.wav", "b.wav"], "out.wav", gains=[0.0])
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_wrong_role_count(self, compat):
+        compat.return_value = self._compatibility(["a.wav", "b.wav"])
+        with self.assertRaisesRegex(core.OSDRunError, "Role count"):
+            core.mix_stems(["a.wav", "b.wav"], "out.wav", roles=["Dialogue"], gains=[0.0, 0.0])
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_nonfinite_or_out_of_range_gains(self, compat):
+        compat.return_value = self._compatibility(["a.wav"])
+        for gain in (float("nan"), float("inf"), -24.1, 12.1):
+            with self.subTest(gain=gain):
+                with self.assertRaisesRegex(core.OSDRunError, "gain must be finite"):
+                    core.mix_stems(["a.wav"], "out.wav", gains=[gain])
+
+    @patch.object(core, "stem_compatibility")
+    def test_mix_rejects_unimplemented_music_ducking_instead_of_ignoring_it(self, compat):
+        compat.return_value = self._compatibility(["a.wav"])
+        with self.assertRaisesRegex(core.OSDRunError, "not implemented"):
+            core.mix_stems(["a.wav"], "out.wav", gains=[0.0], duck_music_db=-6.0)
+
+
+
+class StemTimelineTests(unittest.TestCase):
+    def test_matching_stem_durations_are_accepted(self):
+        core._assert_stem_durations(120.0, [{"duration": 120.1}], tolerance=0.15)
+
+    def test_mismatched_stem_duration_is_rejected(self):
+        with self.assertRaisesRegex(core.OSDRunError, "Stem duration must match"):
+            core._assert_stem_durations(120.0, [{"duration": 118.0}])
+
+    def test_unknown_or_invalid_duration_is_rejected(self):
+        for duration in (None, float("nan"), float("inf"), 0):
+            with self.subTest(duration=duration):
+                with self.assertRaises(core.OSDRunError):
+                    core._assert_stem_durations(120.0, [{"duration": duration}])
+
+
+
+class SilentVideoStemTests(unittest.TestCase):
+    @patch.object(core, "ffprobe")
+    def test_video_only_source_is_allowed_only_when_replacing_audio(self, probe):
+        import tempfile
+        probe.return_value = {
+            "streams": [{"codec_type":"video","codec_name":"h264","duration":"10.0","start_time":"0.0"}],
+            "format": {"duration":"10.0","format_name":"mp4","format_long_name":"MP4"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "silent-video.mp4"
+            source.write_bytes(b"test fixture")
+            with self.assertRaisesRegex(core.OSDRunError, "video but no audio"):
+                core.inspect_media(source)
+            info = core.inspect_media(source, allow_video_only=True)
+            self.assertTrue(info["video"])
+            self.assertEqual(info["audio_stream_count"], 0)
+            self.assertEqual(info["audio_selection_policy"], "no_audio_video_source_replaced_by_stems")
+

@@ -131,7 +131,7 @@ def _timing_info(probe, audio, video, format_duration):
             'non_zero_start_time_detected':irregular_start,'timing_status':'OK' if positive_duration and duration_consistent and not irregular_start else 'IRREGULAR',
             'tolerance_seconds':0.15}
 
-def inspect_media(path):
+def inspect_media(path, allow_video_only=False):
     path=Path(path)
     if not path.exists() or not path.is_file(): raise OSDRunError(f'Input not found: {path}')
     try: p=ffprobe(path)
@@ -139,8 +139,22 @@ def inspect_media(path):
     streams=p.get('streams',[])
     audio=[s for s in streams if s.get('codec_type')=='audio']; video=[s for s in streams if s.get('codec_type')=='video']
     if not audio:
-        if video: raise OSDRunError('Unsupported media stream: input contains video but no audio stream')
-        raise OSDRunError('Unsupported media stream: input contains no audio stream')
+        if not video: raise OSDRunError('Unsupported media stream: input contains no audio stream')
+        if not allow_video_only:
+            raise OSDRunError('Unsupported media stream: input contains video but no audio stream')
+        timing=_timing_info(p,None,video,p.get('format',{}).get('duration',0))
+        if timing['format_duration'] is None or timing['format_duration']<=0:
+            raise OSDRunError(f'Unsupported timing properties in video-only input: {path}')
+        if timing['timing_status']!='OK':
+            raise OSDRunError(f'Timing irregular in video-only input: {path}: {json.dumps(timing,sort_keys=True)}')
+        return {'path':str(path),'duration':float(timing['format_duration']),'audio_codec':None,'sample_rate':0,'channels':0,
+                'channel_layout':None,'effective_channel_layout':None,'channel_map':None,'video':True,
+                'video_codec':video[0].get('codec_name'),'audio_stream_count':0,'video_stream_count':len(video),
+                'selected_audio_index':None,'audio_selection_policy':'no_audio_video_source_replaced_by_stems',
+                'audio_streams':[],'format_name':p.get('format',{}).get('format_name'),
+                'format_long_name':p.get('format',{}).get('format_long_name'),'size_bytes':path.stat().st_size,
+                'sha256':sha256(path),'timing':timing,
+                'media_validation':{'status':'OK','classification':'VALID_VIDEO_ONLY_SOURCE'}}
     audio_index,a,audio_selection=_select_audio_stream(audio)
     try:
         sample_rate=int(a.get('sample_rate') or 0); channels=int(a.get('channels') or 0); duration=float(p['format'].get('duration',0) or 0)
@@ -193,8 +207,23 @@ def stem_compatibility(stems,duration_tolerance=0.15):
             'streams':[{'path':str(s),'duration':i['duration'],'sample_rate':i['sample_rate'],'channels':i['channels'],
                         'channel_layout':i.get('effective_channel_layout'),'channel_map':i.get('channel_map')} for s,i in zip(stems,infos)]}
 
-def source_quality(path):
-    info=inspect_media(path)
+def _assert_stem_durations(base_duration, stem_infos, tolerance=0.15):
+    try:
+        base=float(base_duration)
+        durations=[float(info['duration']) for info in stem_infos]
+    except (TypeError, ValueError, KeyError, OverflowError) as exc:
+        raise OSDRunError('Base and stem durations must be measurable') from exc
+    if not math.isfinite(base) or base <= 0 or any(not math.isfinite(d) or d <= 0 for d in durations):
+        raise OSDRunError('Base and stem durations must be positive finite measurements')
+    mismatched=[round(d, 6) for d in durations if abs(d-base)>tolerance]
+    if mismatched:
+        raise OSDRunError(
+            'Stem duration must match the source timeline within %.3f s; source=%.6f s, mismatched stems=%s'
+            % (tolerance, base, mismatched)
+        )
+
+def source_quality(path, allow_video_only=False):
+    info=inspect_media(path, allow_video_only=allow_video_only)
     return {'status':'OK','sample_rate':info['sample_rate'],'channels':info['channels'],'channel_layout':info['effective_channel_layout'],
             'duration':info['duration'],'source_sha256':info['sha256']}
 
@@ -203,15 +232,27 @@ def mix_stems(stems,out,roles=None,gains=None,duck_music_db=0.0):
     if not stems: raise OSDRunError('No stems supplied')
     compat=stem_compatibility(stems)
     if not compat['checks']['all_pass']: raise OSDRunError('Stem compatibility failed: '+json.dumps(compat['checks'],sort_keys=True))
-    gains=list(gains or [0.0]*len(stems))
+    if roles is not None and len(roles) != len(stems):
+        raise OSDRunError('Role count must match stem count')
+    try:
+        gains=[float(x) for x in (gains if gains is not None else [0.0]*len(stems))]
+        duck_music_db=float(duck_music_db)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise OSDRunError('Stem gains and ducking must be finite numbers') from exc
     if len(gains)!=len(stems): raise OSDRunError('Gain count must match stem count')
+    if not all(math.isfinite(g) and -24.0 <= g <= 12.0 for g in gains):
+        raise OSDRunError('Each stem gain must be finite and between -24 dB and +12 dB')
+    if not math.isfinite(duck_music_db) or duck_music_db != 0.0:
+        raise OSDRunError('Automatic music ducking is not implemented; use 0 dB')
     inputs=[]; filters=[]; labels=[]
     for i,st in enumerate(stems):
         inputs += ['-i',str(st)]
-        filters.append(f'[{i}:a]volume={float(gains[i]):.4f}dB[a{i}]'); labels.append(f'[a{i}]')
-    mix=''.join(labels)+f'amix=inputs={len(stems)}:duration=longest:dropout_transition=0[m]'
+        filters.append(f'[{i}:a]volume={gains[i]:.4f}dB[a{i}]'); labels.append(f'[a{i}]')
+    # Do not silently normalize the relative gains. Keep an unclipped floating-point
+    # intermediate so the later limiter can manage peaks without prior PCM16 clipping.
+    mix=''.join(labels)+f'amix=inputs={len(stems)}:duration=longest:dropout_transition=0:normalize=0[m]'
     filters.append(mix)
-    cmd=['ffmpeg','-y','-hide_banner']+inputs+['-filter_complex',';'.join(filters),'-map','[m]','-ar',str(compat['streams'][0]['sample_rate']),'-ac',str(compat['streams'][0]['channels']),str(out)]
+    cmd=['ffmpeg','-y','-hide_banner']+inputs+['-filter_complex',';'.join(filters),'-map','[m]','-ar',str(compat['streams'][0]['sample_rate']),'-ac',str(compat['streams'][0]['channels']),'-c:a','pcm_f32le',str(out)]
     _run(cmd)
 
 def render_audio(src,out):
@@ -326,15 +367,18 @@ def run_pipeline(src,outdir,target_lufs=-16,stems=None,roles=None,gains=None,duc
     t=time.time(); lifecycle=['PLANNED','AUTHORIZED','STARTED']
     try:
         lifecycle.append('EXECUTING')
-        inspection=inspect_media(src); source_hash_before=inspection['sha256']; source_assessment=source_quality(src)
+        inspection=inspect_media(src, allow_video_only=bool(stems)); source_hash_before=inspection['sha256']; source_assessment=source_quality(src, allow_video_only=bool(stems))
         original=stage/('source-copy'+src.suffix)
         if _resume_artifact(manifest,'source-copy'): original=_resume_artifact(manifest,'source-copy')
         else:
             shutil.copy2(src,original); manifest['artifacts']['source-copy']=_artifact_record(original); manifest['completed_stages'].append('source_copy'); _write_resume_manifest(stage,manifest)
         stem_paths=[Path(x) for x in (stems or [])]
         if stem_paths:
+            stem_infos=[]
             for st in stem_paths:
                 if not st.exists() or not st.is_file(): raise OSDRunError(f'Stem not found: {st}')
+                stem_infos.append(inspect_media(st))
+            _assert_stem_durations(inspection['duration'], stem_infos)
             mix_source=stage/'mixed-source.wav'
             if not _resume_artifact(manifest,'mixed-source'):
                 mix_stems(stem_paths,mix_source,roles=roles,gains=gains,duck_music_db=duck_music_db); manifest['artifacts']['mixed-source']=_artifact_record(mix_source); manifest['completed_stages'].append('stem_mix'); _write_resume_manifest(stage,manifest)
