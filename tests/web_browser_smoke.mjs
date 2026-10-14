@@ -79,7 +79,9 @@ function makePcmWav({ seconds = 0.5, sampleRate = 44100, frequency = 120, amplit
 }
 
 try {
-  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  const testUrl = new URL(baseUrl);
+  testUrl.searchParams.set("osdTestHooks", "1");
+  await page.goto(testUrl.toString(), { waitUntil: "domcontentloaded" });
   assert.match(await page.title(), /Origin Sound Department|OSD/i);
   assert.equal(await page.locator("#render").isDisabled(), true, "render must remain disabled before a source is loaded");
   await page.locator("#aiServiceUrl").fill("not a valid url");
@@ -207,12 +209,12 @@ try {
   assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 scene observations/);
   assert.match(await page.locator("#autonomousEditSummary").innerText(), /1 sound cues/);
   const exportEvidenceStates = await page.evaluate(() => ({
-    picturePass: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=PASS evidence={}\\nPICTURE_EDIT_EXPORT_CREATED bytes=123"),
-    missingCreated: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=PASS evidence={}"),
-    missingQc: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_CREATED bytes=123"),
-    wrongMode: autonomousExportEvidenceState("video-mix", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123"),
-    failed: autonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=FAIL"),
-    unknownMode: autonomousExportEvidenceState("unverified", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123")
+    picturePass: window.__osdAutonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=PASS evidence={}\\nPICTURE_EDIT_EXPORT_CREATED bytes=123"),
+    missingCreated: window.__osdAutonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=PASS evidence={}"),
+    missingQc: window.__osdAutonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_CREATED bytes=123"),
+    wrongMode: window.__osdAutonomousExportEvidenceState("video-mix", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123"),
+    failed: window.__osdAutonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=FAIL"),
+    unknownMode: window.__osdAutonomousExportEvidenceState("unverified", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123")
   }));
   assert.deepEqual(exportEvidenceStates, {
     picturePass: "PASS", missingCreated: "UNKNOWN", missingQc: "UNKNOWN",
