@@ -290,6 +290,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("uploads nothing, and uses no AI credits", self.inline_script)
         self.assertIn("connected AI still requires its separate consent", self.inline_script)
 
+    def test_autonomous_runner_orchestrates_local_audio_and_confirmed_combination(self):
+        self.assertIn("if(!aiVisualLastResult?.analysis)", self.inline_script)
+        self.assertIn("audioSelected&&alignmentConfirmed&&!aiAudioLastResult?.analysis", self.inline_script)
+        self.assertIn("$('runLocalAudioAnalysis').click()", self.inline_script)
+        self.assertIn("alignmentConfirmed&&aiVisualLastResult?.analysis&&aiAudioLastResult?.analysis&&aiLastMode!=='combined'", self.inline_script)
+        self.assertIn("$('combineAIResults').click()", self.inline_script)
+        self.assertIn("shared 00:00 start is not confirmed", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",

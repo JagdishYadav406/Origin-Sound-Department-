@@ -257,6 +257,14 @@ try {
     mimeType: "audio/wav",
     buffer: makePcmWav({ seconds: 0.5, frequency: 220, amplitude: 0.04 })
   });
+  // Explicitly confirm alignment and let the runner choose the free local audio
+  // measurement path before testing the separate consented connected-AI request.
+  await page.locator("#aiTimelineAligned").check();
+  await page.locator("#continueAutonomousWorkflow").click();
+  assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Started free local audio analysis for the selected audio file/);
+  await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Free local audio measurement complete"), null, { timeout: 15000 });
+  assert.match(await page.locator("#audioAIStatus").innerText(), /No upload, account, AI model, or credits used/);
+  await page.locator("#aiTimelineAligned").uncheck();
   await page.locator("#aiAudioConsent").check();
   await page.locator("#analyzeAudioAI").click();
   await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Audio analysis complete"), null, { timeout: 15000 });
@@ -264,7 +272,10 @@ try {
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Keep background music below the narration/);
   assert.equal(await page.locator("#buildAutonomousEdit").isDisabled(), true, "audio-only proposals must not be aligned to the video by assumption");
   await page.locator("#aiTimelineAligned").check();
-  assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "audio-only draft requires explicit shared-start confirmation");
+  await page.locator("#continueAutonomousWorkflow").click();
+  assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Combined the current visual and audio analyses using the explicitly confirmed shared 00:00 start/);
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /Combined plan from separate visual-frame and audio-aware analyses/);
+  assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "confirmed combined analysis should enable autonomous draft creation");
   await page.locator("#buildAutonomousEdit").click();
   await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Draft built"), null, { timeout: 5000 });
   assert.match(await page.locator("#autonomousEditSummary").innerText(), /Keep background music below the narration/);
