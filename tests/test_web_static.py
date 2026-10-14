@@ -559,9 +559,14 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("user confirmation of downloaded file pending", self.inline_script)
         self.assertIn("download confirmation pending", self.inline_script)
 
-    def test_project_loader_rejects_unrestorable_timeline_clips_before_mutation(self):
-        self.assertIn("obj.timelineClips!==undefined&&(!Array.isArray(obj.timelineClips)||obj.timelineClips.length>200)", self.inline_script)
-        self.assertIn("This project contains additional timeline clips that this build cannot restore yet. No project settings were changed", self.inline_script)
+    def test_project_loader_relinks_and_verifies_additional_timeline_clips(self):
+        self.assertIn('id="loadProjectClipFiles"', self.html)
+        self.assertIn("pendingProjectClipManifest=obj", self.inline_script)
+        self.assertIn("SHA-256 mismatch for clip", self.inline_script)
+        self.assertIn("decoded duration does not match saved clip", self.inline_script)
+        self.assertIn("pendingRestoredProjectClips=prepared", self.inline_script)
+        self.assertIn("existingBytes+file.size*2+32*MiB>budgetBytes()", self.inline_script)
+        self.assertIn("timeline_clips_restored=${extraClips.length}", self.inline_script)
 
     def test_original_source_previews_are_separate_from_rendered_mix(self):
         for name in ("dialogue", "music", "sfx", "ambience"):
