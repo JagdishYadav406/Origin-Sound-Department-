@@ -188,6 +188,16 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("dialogueEnvelope=0;buf=new ArrayBuffer(output)", self.inline_script)
         self.assertIn("not speech recognition or an automatic mix-quality decision", self.html)
 
+    def test_autonomous_edit_drafts_are_invalidated_when_source_or_analysis_changes(self):
+        self.assertIn("autonomousEditDraftContext=null", self.inline_script)
+        self.assertIn("function autonomousEditDraftIsCurrent()", self.inline_script)
+        self.assertIn("c.videoFile===videoFile&&c.analysis===aiLastResult&&c.mode===aiLastMode", self.inline_script)
+        self.assertIn("alignmentConfirmed&&!!$('aiTimelineAligned').checked", self.inline_script)
+        self.assertIn("if(!autonomousEditDraftIsCurrent())", self.inline_script)
+        self.assertIn("Draft is stale: source, analysis, mode, or audio alignment changed", self.inline_script)
+        self.assertIn("limitSkipped", self.inline_script)
+        self.assertIn("Source video, audio tracks and mix settings are unchanged.", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
