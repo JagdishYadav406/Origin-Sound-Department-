@@ -216,8 +216,8 @@ try {
   await page.locator("#stageAutonomousPicturePlan").click();
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "scene boundaries should create two retained picture intervals in the synthetic fixture");
   assert.match(await page.locator("#autonomousEditStatus").innerText(), /All source intervals remain included/);
-  while (await page.locator("#pictureTimelineList button[aria-label^="Remove picture interval"]").count()) {
-    await page.locator("#pictureTimelineList button[aria-label^="Remove picture interval"]").first().click();
+  while (await page.locator('#pictureTimelineList button[aria-label^="Remove picture interval"]').count()) {
+    await page.locator('#pictureTimelineList button[aria-label^="Remove picture interval"]').first().click();
   }
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "review test must remove staged intervals before project round-trip assertions");
   await page.locator("#clearVideoCues").click(); // Keep later project round-trip assertions isolated from this feature test.
