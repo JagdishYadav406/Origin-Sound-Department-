@@ -253,6 +253,20 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("trackEvidenceReady=!loadedTracks||autonomousTrackEvidenceIsCurrent()", self.inline_script)
         self.assertIn("Run a fresh local sample scan of the loaded tracks before building a precision-focused draft", self.inline_script)
 
+    def test_autonomous_workflow_runner_gates_render_export_and_evidence(self):
+        self.assertIn('id="continueAutonomousWorkflow"', self.html)
+        self.assertIn('id="autonomousTrackReviewConfirmed"', self.html)
+        self.assertIn('id="autonomousMixPreviewReviewed"', self.html)
+        self.assertIn('id="autonomousFinalExportApproved"', self.html)
+        self.assertIn('id="autonomousOutputPlaybackReviewed"', self.html)
+        self.assertIn("function continueAutonomousWorkflow()", self.inline_script)
+        self.assertIn("autonomousWorkflowPreparedDraft!==autonomousEditDraft", self.inline_script)
+        self.assertIn("QC gate blocked export", self.inline_script)
+        self.assertIn("No new edited output was confirmed", self.inline_script)
+        self.assertIn("PROJECT_SAVE_FAILED", self.inline_script)
+        self.assertIn("EVIDENCE_REPORT_PREPARED", self.inline_script)
+        self.assertIn("download receipt is not independently verified", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
