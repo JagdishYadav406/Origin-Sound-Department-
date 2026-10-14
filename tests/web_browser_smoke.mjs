@@ -214,11 +214,12 @@ try {
     missingQc: window.__osdAutonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_CREATED bytes=123"),
     wrongMode: window.__osdAutonomousExportEvidenceState("video-mix", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123"),
     failed: window.__osdAutonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=FAIL"),
+    conflictingEvidence: window.__osdAutonomousExportEvidenceState("picture", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123\\nPICTURE_EDIT_EXPORT_QC status=FAIL"),
     unknownMode: window.__osdAutonomousExportEvidenceState("unverified", "PICTURE_EDIT_EXPORT_QC status=PASS\\nPICTURE_EDIT_EXPORT_CREATED bytes=123")
   }));
   assert.deepEqual(exportEvidenceStates, {
     picturePass: "PASS", missingCreated: "UNKNOWN", missingQc: "UNKNOWN",
-    wrongMode: "UNKNOWN", failed: "FAIL", unknownMode: "UNKNOWN"
+    wrongMode: "UNKNOWN", failed: "FAIL", conflictingEvidence: "FAIL", unknownMode: "UNKNOWN"
   }, "autonomous export evidence must fail closed on missing, mismatched, or failed evidence");
   assert.equal(await page.locator("#exportAutonomousEdit").isEnabled(), true, "valid edit package should be exportable");
   assert.equal(await page.locator("#applyAutonomousEdit").isEnabled(), true, "valid sound cue plan should be stageable");
