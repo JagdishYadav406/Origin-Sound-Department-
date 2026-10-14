@@ -273,6 +273,9 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("project JSON and QC evidence report prepared", self.inline_script)
         self.assertIn("autonomousWorkflowPackageExportedFor=null;autonomousWorkflowProjectSaveFor=null;autonomousWorkflowReportPreparedFor=null", self.inline_script)
         self.assertLess(self.inline_script.index("if(!autonomousWorkflowReportPreparedFor"), self.inline_script.index("if(autonomousWorkflowPackageExportedFor"))
+        self.assertIn("Guided workflow reached its final checkpoint", self.inline_script)
+        self.assertIn("Download receipt, saved-file contents, and physical-device playback remain unverified", self.inline_script)
+        self.assertIn("do not treat this as release certification", self.inline_script)
 
     def test_autonomous_safety_trim_is_opt_in_attenuation_only(self):
         self.assertIn('id="autonomousSafetyTrimEnabled"', self.html)
