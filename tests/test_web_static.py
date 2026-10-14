@@ -235,6 +235,18 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Safe preparation partially completed", self.inline_script)
         self.assertIn("candidate row(s)", self.inline_script)
 
+    def test_autonomous_track_evidence_scans_decoded_buffers_without_processing(self):
+        self.assertIn('id="analyzeAutonomousTracks"', self.html)
+        self.assertIn('id="cancelAutonomousTrackAnalysis"', self.html)
+        self.assertIn("async function runAutonomousTrackEvidence()", self.inline_script)
+        self.assertIn("for(let block=start;block<end;block+=131072)", self.inline_script)
+        self.assertIn("source_upload=false processing_settings_changed=false", self.inline_script)
+        self.assertIn("sample peak is not true peak", self.inline_script)
+        self.assertIn("autonomousTrackEvidenceRevision", self.inline_script)
+        self.assertIn("trackEvidence:autonomousTrackEvidenceIsCurrent()", self.inline_script)
+        self.assertIn("No current local sample-level scan exists", self.inline_script)
+        self.assertIn("Track evidence is stale because a source file changed", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
