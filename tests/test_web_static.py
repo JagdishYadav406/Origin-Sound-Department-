@@ -195,6 +195,9 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("alignmentConfirmed&&!!$('aiTimelineAligned').checked", self.inline_script)
         self.assertIn("if(!autonomousEditDraftIsCurrent())", self.inline_script)
         self.assertIn("Draft is stale: source, analysis, mode, or audio alignment changed", self.inline_script)
+        self.assertIn("function captureAutonomousToolState()", self.inline_script)
+        self.assertIn("autonomousToolStateMatches(c.toolState)", self.inline_script)
+        self.assertIn("mix settings, track sources, extra clips, and local library state", self.html)
         self.assertIn("limitSkipped", self.inline_script)
         self.assertIn("Source video, audio tracks and mix settings are unchanged.", self.inline_script)
 
@@ -204,7 +207,12 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("defaultAction:'KEEP_ALL_SOURCE_INTERVALS'", self.inline_script)
         self.assertIn("executed:false", self.inline_script)
         self.assertIn("function buildPictureTimeline()", self.inline_script)
-        self.assertIn("buildPictureTimeline();$('autonomousEditStatus').textContent='AI scene boundaries staged", self.inline_script)
+        self.assertIn("const boundaries=autonomousEditDraft.pictureEditPlan.proposedBoundariesSeconds", self.inline_script)
+        self.assertIn("proposed interval is shorter than 120 ms", self.inline_script)
+        self.assertIn("Prepare all OSD tool workspaces", self.html)
+        self.assertIn("autonomousEditDraft.toolCoverage", self.inline_script)
+        self.assertIn("range collapses after clamping to video duration", self.inline_script)
+        self.assertIn("recommendedTrack", self.inline_script)
         self.assertIn("all_source_intervals_retained=true source_media_modified=false", self.inline_script)
         self.assertIn("All source intervals remain included", self.html)
 
