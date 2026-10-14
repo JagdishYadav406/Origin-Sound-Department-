@@ -235,6 +235,58 @@ try {
   await page.locator("#aiTimelineAligned").uncheck();
   assert.equal(await page.locator("#exportAutonomousEdit").isDisabled(), true, "withdrawing alignment must invalidate an audio-based draft");
 
+  // Exercise the free, browser-local classifier button end-to-end with a deterministic
+  // mock Transformers module. This tests UI wiring, decoded-audio preprocessing, result
+  // rendering, and failure-free cleanup without downloading model weights in CI.
+    await page.locator("#aiAudioFile").setInputFiles({
+    name: "osd-local-ai-smoke.wav",
+    mimeType: "audio/wav",
+    buffer: makePcmWav()
+  });
+  await page.waitForFunction(() => {
+    const el = document.querySelector("#runLocalAudioModel");
+    return el && !el.disabled;
+  });
+  await page.route("**/@huggingface/transformers@3.8.1*", async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/javascript; charset=utf-8",
+      body: "export function pipeline(){return async function(){return [{label:'Speech',score:0.91},{label:'Music',score:0.42}]}}"
+    });
+  });
+  await page.locator("#runLocalAudioModel").click();
+  await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Free local audio model complete"), null, { timeout: 15000 });
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /Speech/);
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /local-audioset|AudioSet classifier/i);
+  assert.match(await page.locator("#audioAIStatus").innerText(), /No upload or paid API/i);
+  await page.unroute("**/@huggingface/transformers@3.8.1*");
+
+  // Exercise the free browser-local visual classifier with deterministic runtime/model
+  // shims. This verifies video sampling, model API wiring, result rendering, and cleanup
+  // without downloading large TensorFlow.js/model assets in CI. It does not claim real inference.
+  await page.route("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js", async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/javascript; charset=utf-8",
+      body: "window.tf={ready:async()=>{},setBackend:async()=>{}};"
+    });
+  });
+  await page.route("https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1", async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/javascript; charset=utf-8",
+      body: "window.mobilenet={load:async()=>({classify:async()=>[{className:'test frame object',probability:0.88},{className:'test background',probability:0.45}]})};"
+    });
+  });
+  await page.locator("#runLocalVisualModel").click();
+  await page.waitForFunction(() => (document.querySelector("#aiAnalysisStatus")?.textContent || "").includes("Free MobileNet analysis complete"), null, { timeout: 15000 });
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /test frame object/);
+  assert.match(await page.locator("#aiAnalysisResults").innerText(), /pretrained image classifier/i);
+  assert.match(await page.locator("#aiAnalysisStatus").innerText(), /No media uploaded/i);
+  assert.match(await page.locator("#log").innerText(), /LOCAL_MOBILENET_ANALYSIS_COMPLETE.*upload=false paid_api=false/);
+  await page.unroute("https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js");
+  await page.unroute("https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1");
+
   await page.unroute("https://mock-osd-ai.example/**");
 
 
@@ -384,7 +436,7 @@ try {
   const projectPath = await download.path();
   const project = JSON.parse(await readFile(projectPath, "utf8"));
   assert.equal(project.format, "OSD-WEB-PROJECT");
-  assert.equal(project.projectVersion, 12);
+  assert.equal(project.projectVersion, 13);
   assert.equal(project.timelineClips?.length, 0, "project should record an empty clip manifest when no extra clips are loaded");
   assert.deepEqual(project.pictureTimeline.segments, [], "project should preserve an empty picture timeline when no intervals are selected");
   assert.equal(project.pictureTimeline.source?.name, project.videoReference?.name, "picture timeline source should match the saved video reference");

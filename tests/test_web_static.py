@@ -176,7 +176,15 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("duckThresholdDb:Number($('duckThreshold').value)", self.inline_script)
         self.assertIn("const duckDepthDb=obj.master", self.inline_script)
         self.assertIn("const duckThresholdDb=obj.master", self.inline_script)
-        self.assertIn("const PROJECT_VERSION=12", self.inline_script)
+        self.assertIn("async function validateWebmExportBlob(blob,expectedDuration)", self.inline_script)
+        self.assertIn("timed out validating exported WebM metadata", self.inline_script)
+        self.assertIn("for(const event of ['loadedmetadata','loadeddata','resize','canplay'])probe.addEventListener(event,check)", self.inline_script)
+        self.assertIn("containerSignature:'UNKNOWN'", self.inline_script)
+        self.assertIn("avSync:'NOT_MEASURED'", self.inline_script)
+        self.assertIn("downloadCompletion:'UNVERIFIABLE'", self.inline_script)
+        self.assertIn("VIDEO_MIX_EXPORT_QC status=PASS", self.inline_script)
+        self.assertIn("No download was offered; source media unchanged.", self.inline_script)
+        self.assertIn("const PROJECT_VERSION=13", self.inline_script)
         self.assertIn("dialogueEnvelope=0;buf=new ArrayBuffer(output)", self.inline_script)
         self.assertIn("not speech recognition or an automatic mix-quality decision", self.html)
 
@@ -195,7 +203,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("timelineClips:extraClips.map", self.inline_script)
         self.assertIn("mediaEmbedded:false", self.inline_script)
         self.assertIn("source_preserved=true", self.inline_script)
-        self.assertIn("PROJECT_VERSION=12", self.inline_script)
+        self.assertIn("PROJECT_VERSION=13", self.inline_script)
 
     def test_per_track_noise_gate_is_reversible_and_off_by_default(self):
         self.assertIn("function dynamicsSettings(name)", self.inline_script)
@@ -203,7 +211,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("s.maxGateReductionDb=dsp.gateReduction", self.inline_script)
         self.assertIn("if(dsp.gateReduction>0)", self.inline_script)
         self.assertIn("dsp.gateReduction===0", self.inline_script)
-        self.assertIn("PROJECT_VERSION=12", self.inline_script)
+        self.assertIn("PROJECT_VERSION=13", self.inline_script)
         for track in ("dialogue", "music", "sfx", "ambience"):
             self.assertIn(f'id="gateThreshold-{track}"', self.html)
             self.assertIn(f'id="gateReduction-{track}"', self.html)
@@ -221,6 +229,11 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
             self.assertRegex(self.html, rf"""id=["']{element_id}["']""")
         self.assertIn("Audio and video media are not embedded", self.inline_script)
         self.assertIn("has not been re-verified in this session", self.inline_script)
+        self.assertIn("const PROJECT_VERSION=13", self.inline_script)
+        self.assertIn("OSD-CHUNKED-SHA256-V1", self.inline_script)
+        self.assertIn("fingerprintMatches&&metadataCompatible", self.inline_script)
+        self.assertIn("PICTURE_TIMELINE_RESTORE_BLOCKED source_identity_mismatch=true", self.inline_script)
+        self.assertIn("videoContentFingerprint(file,token)", self.inline_script)
 
     def test_mix_render_has_preallocation_clipping_gate_and_serialized_pcm_checks(self):
         self.assertIn("PRE_RENDER_QC_BLOCKED", self.inline_script)
@@ -275,14 +288,115 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("500*MiB", self.inline_script)
         self.assertIn("job.audioStream?.getTracks().forEach(t=>t.stop())", self.inline_script)
         self.assertIn("source_unchanged=true", self.inline_script)
+        self.assertIn("PICTURE_EDIT_EXPORT_QC status=PASS", self.inline_script)
+        self.assertIn("validateWebmExportBlob(blob,totalFrames/sr)", self.inline_script)
+        self.assertIn("Picture export rejected by QC", self.inline_script)
+        self.assertIn('id="multiClipWorkspace"', self.html)
+        self.assertIn('id="mixMasterWorkspace"', self.html)
+        self.assertIn('id="projectWorkspace"', self.html)
+        self.assertIn('id="evidenceWorkspace"', self.html)
         self.assertIn("pictureTimeline:{source:", self.inline_script)
         self.assertIn("PICTURE_TIMELINE_RESTORED", self.inline_script)
         self.assertIn("PICTURE_TIMELINE_RESTORE_BLOCKED", self.inline_script)
         self.assertIn("importedPicture.segments.length>200", self.inline_script)
         self.assertIn("Picture intervals must be sorted and non-overlapping", self.inline_script)
 
-if __name__ == "__main__":
-    unittest.main()
+
+    def test_tool_navigation_targets_exist_and_video_outputs_are_separate(self):
+        nav = re.search(r'<nav class="feature-nav"[^>]*>(.*?)</nav>', self.html, re.S)
+        self.assertIsNotNone(nav)
+        targets = re.findall(r'href="#([^"]+)"', nav.group(1))
+        ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', self.html))
+        self.assertTrue(targets)
+        self.assertTrue(set(targets).issubset(ids), "broken feature navigation: " + repr(sorted(set(targets) - ids)))
+        self.assertIn('id="sourceSection"', self.html)
+        self.assertIn('<section class="panel" id="pictureEditWorkspace"', self.html)
+        self.assertIn('id="editedVideoPlayer"', self.html)
+        self.assertIn('id="editedVideoState"', self.html)
+        self.assertIn("function showEditedVideoOutput(blob,label)", self.inline_script)
+        self.assertIn("showEditedVideoOutput(blob,'Edited video + current mix')", self.inline_script)
+        self.assertIn("showEditedVideoOutput(blob,'Edited picture timeline')", self.inline_script)
+        self.assertIn("source_unchanged=true", self.inline_script)
+
+    def test_ai_service_setup_points_to_existing_deployment_files_and_discloses_prerequisites(self):
+        self.assertIn('id="aiServiceSetup"', self.html)
+        self.assertIn('https://render.com/', self.html)
+        self.assertIn('/tree/feature/separate-media-tool-workspaces/ai-service', self.html)
+        self.assertIn("OPENAI_API_KEY", self.html)
+        self.assertIn("OSD_SERVICE_TOKEN", self.html)
+        self.assertIn("No media is sent to the connected service until you press its Analyze button", self.html)
+
+
+    def test_no_credit_local_video_analysis_is_explicit_and_does_not_upload(self):
+        self.assertIn('id="runLocalVideoAnalysis"', self.html)
+        self.assertIn("$('runLocalVideoAnalysis').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("LOCAL_VIDEO_HEURISTIC_COMPLETE", self.inline_script)
+        self.assertIn("no media uploaded", self.inline_script.lower())
+        self.assertIn("no AI model", self.inline_script)
+        self.assertIn("local-frame-difference", self.inline_script)
+
+    def test_audio_classifier_releases_decoded_buffer_before_model_load(self):
+        handler = self.inline_script.index("$('runLocalAudioModel').addEventListener('click',async()=>{")
+        decode = self.inline_script.index("await context.decodeAudioData", handler)
+        release = self.inline_script.index("decoded=null", decode)
+        load_model = self.inline_script.index("const classifier=await getFreeAudioClassifier()", handler)
+        self.assertLess(decode, release)
+        self.assertLess(release, load_model)
+        self.assertIn("const durationSeconds=decoded.duration", self.inline_script)
+        self.assertIn("await context.close();context=null", self.inline_script)
+        self.assertIn("durationSeconds,sampledFrameTimesSeconds:[]", self.inline_script)
+
+    def test_audio_classifier_validates_duration_before_loading_model(self):
+        handler = self.inline_script.index("$('runLocalAudioModel').addEventListener('click',async()=>{")
+        decode = self.inline_script.index("await context.decodeAudioData", handler)
+        duration_guard = self.inline_script.index("decoded.duration>90", decode)
+        load_model = self.inline_script.index("const classifier=await getFreeAudioClassifier()", handler)
+        self.assertLess(decode, duration_guard)
+        self.assertLess(duration_guard, load_model)
+        self.assertIn("segment=padded", self.inline_script)
+        self.assertIn("new Float32Array(chunkSamples)", self.inline_script)
+
+    def test_short_final_audio_classifier_segment_is_padded_for_model_input(self):
+        self.assertIn("let segment=mono.slice(start,end)", self.inline_script)
+        self.assertIn("segment=padded", self.inline_script)
+        self.assertNotIn("segment.set(padded.subarray(0,segment.length))", self.inline_script)
+
+    def test_free_local_audio_event_classifier_is_separate_and_no_upload(self):
+        self.assertIn('id="runLocalAudioModel"', self.html)
+        self.assertIn("$('runLocalAudioModel').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("@huggingface/transformers@3.8.1", self.inline_script)
+        self.assertIn("ast-finetuned-audioset-10-10-0.4593-ONNX", self.inline_script)
+        self.assertIn("dtype:'q4'", self.inline_script)
+        self.assertIn("LOCAL_AUDIOSET_CLASSIFICATION_COMPLETE", self.inline_script)
+        self.assertIn("upload=false paid_api=false", self.inline_script)
+        self.assertIn("audio samples are decoded and classified in this browser", self.inline_script.lower())
+        self.assertIn("PRETRAINED AUDIO CLASSIFIER · REVIEW LABELS", self.inline_script)
+
+    def test_free_pretrained_visual_classifier_runs_locally_without_paid_api(self):
+        self.assertIn('id="runLocalVisualModel"', self.html)
+        self.assertIn("$('runLocalVisualModel').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("getFreeMobileNet()", self.inline_script)
+        self.assertIn("mobileNet.load({version:2,alpha:0.5})", self.inline_script)
+        self.assertIn("model.classify(canvas,3)", self.inline_script)
+        self.assertIn("LOCAL_MOBILENET_ANALYSIS_COMPLETE", self.inline_script)
+        self.assertIn("upload=false paid_api=false", self.inline_script)
+        self.assertIn("pretrained image classifier", self.inline_script.lower())
+        self.assertIn("Video frames are classified inside this browser and are not uploaded", self.inline_script)
+
+    def test_no_credit_local_audio_analysis_uses_browser_signal_processing(self):
+        self.assertIn('id="runLocalAudioAnalysis"', self.html)
+        self.assertIn("$('runLocalAudioAnalysis').addEventListener('click',async()=>{", self.inline_script)
+        self.assertIn("decodeAudioData", self.inline_script)
+        self.assertIn("LOCAL_AUDIO_HEURISTIC_COMPLETE", self.inline_script)
+        self.assertIn("No upload, account, AI model, or credits used.", self.inline_script)
+        self.assertIn("MEASURED / HEURISTIC RESULT · NOT SEMANTIC AI", self.inline_script)
+
+    def test_paid_connected_ai_is_optional_and_separate_from_local_mode(self):
+        self.assertIn("Connected generative AI requires a separately configured provider and may cost money.", self.html)
+        self.assertIn("For a zero-credit path, use the local analysis buttons below", self.html)
+        self.assertIn("runLocalVideoAnalysis", self.html)
+        self.assertIn("runLocalAudioAnalysis", self.html)
+
     def test_original_source_previews_are_separate_from_rendered_mix(self):
         for name in ("dialogue", "music", "sfx", "ambience"):
             self.assertIn(f'id="original-preview-{name}"', self.html)
@@ -293,3 +407,5 @@ if __name__ == "__main__":
         self.assertIn('id="mixPlayer" controls', self.html)
         self.assertIn("source files are not overwritten", self.html)
 
+if __name__ == "__main__":
+    unittest.main()
