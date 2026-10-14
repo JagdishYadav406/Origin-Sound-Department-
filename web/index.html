@@ -1081,7 +1081,7 @@ function renderExtraClips(){
  for(const clip of extraClips){
   const row=document.createElement('div');row.className='cue-row';
   const title=document.createElement('strong');title.textContent=clip.file.name;
-  const detail=document.createElement('p');detail.className='hint';detail.textContent=`${clip.track.toUpperCase()} · starts ${clip.offset.toFixed(2)} s · ${clip.buffer.duration.toFixed(2)} s · ${clip.gainDb.toFixed(1)} dB · SHA-256 ${clip.sha256?'recorded':'UNAVAILABLE'}`;
+  const detail=document.createElement('p');detail.className='hint';detail.textContent=`${clip.track.toUpperCase()} · starts ${clip.offset.toFixed(2)} s · ${clip.buffer.duration.toFixed(2)} s · ${clip.gainDb.toFixed(1)} dB · ${clip.sourceIdentityStatus||(clip.sha256?'SHA-256 recorded; not compared to a saved fingerprint':'content identity UNVERIFIED')}`;
   const remove=document.createElement('button');remove.type='button';remove.className='btn';remove.textContent='Remove clip';remove.addEventListener('click',()=>{const idx=extraClips.findIndex(c=>c.id===clip.id);if(idx<0)return;extraClips.splice(idx,1);renderToken++;markMixPreviewStale('Timeline clip removed.');$('qcMetric').textContent='NOT RUN';$('levelMetric').textContent='UNKNOWN';renderExtraClips();update();log(`TIMELINE_CLIP_REMOVED id=${clip.id} source_preserved=true`);});
   row.append(title,detail,remove);host.appendChild(row);
  }
