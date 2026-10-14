@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { chromium } from "playwright";
 
 const baseUrl = process.env.OSD_BASE_URL || "http://127.0.0.1:4173/web/index.html";
@@ -578,13 +579,19 @@ try {
   assert.equal(await page.locator("#mixPreviewStatus").innerText(), "Previous render — OUTDATED", "project settings changes must invalidate the old preview");
   assert.equal(await page.locator("#mixPreview").getAttribute("class"), "stale", "outdated preview must receive warning styling");
 
-  // Unsupported extra timeline clips must be rejected before any session settings mutate.
-  await page.locator("#eqbass-dialogue").evaluate(el => { el.value = "2"; el.dispatchEvent(new Event("input", { bubbles: true })); });
-  const clipProject = { ...project, timelineClips: [{ track: "music", name: "missing-bgm.wav", size: 123, offset: 0, gainDb: 0, fadeIn: 0, fadeOut: 0, durationSeconds: 1, mediaEmbedded: false }] };
-  await page.locator("#loadProjectFile").setInputFiles({ name: "osd-project-with-unrestorable-clip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(clipProject)) });
-  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Project load rejected"), null, { timeout: 10000 });
-  assert.match(await page.locator("#message").innerText(), /additional timeline clips.*cannot restore/i, "unsupported clip project must explain why it was rejected");
-  assert.equal(await page.locator("#eqbass-dialogue").inputValue(), "2", "rejecting unsupported clips must leave current settings unchanged");
+  // Restore a saved extra clip only after its exact local source is reselected and verified.
+  const savedClipBytes = makePcmWav({ seconds: 0.5, frequency: 440, amplitude: 0.04 });
+  const savedClipHash = createHash("sha256").update(savedClipBytes).digest("hex");
+  const clipProject = { ...project, timelineClips: [{ track: "music", name: "osd-roundtrip-clip.wav", size: savedClipBytes.byteLength, lastModified: 0, mime: "audio/wav", sha256: savedClipHash, offset: 0.35, gainDb: -4, fadeIn: 0.1, fadeOut: 0.15, durationSeconds: 0.5, mediaEmbedded: false }] };
+  await page.locator("#loadProjectFile").setInputFiles({ name: "osd-project-with-saved-clip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(clipProject)) });
+  await page.waitForFunction(() => (document.querySelector("#projectNotice")?.textContent || "").includes("Choose the original clip files"), null, { timeout: 10000 });
+  await page.locator("#loadProjectClipFiles").setInputFiles({ name: "osd-roundtrip-clip.wav", mimeType: "audio/wav", buffer: savedClipBytes });
+  await page.waitForFunction(() => (document.querySelector("#message")?.textContent || "").startsWith("Project settings loaded") || (document.querySelector("#message")?.textContent || "").startsWith("Project load rejected"), null, { timeout: 15000 });
+  assert.ok((await page.locator("#message").innerText()).startsWith("Project settings loaded"), "project with a matching local clip should restore successfully");
+  assert.equal(await page.locator("#extraClipList button").count(), 1, "restored project should reinstate its additional timeline clip");
+  assert.match(await page.locator("#extraClipList").innerText(), /osd-roundtrip-clip\.wav/);
+  assert.match(await page.locator("#extraClipList").innerText(), /SHA-256 verified/);
+  assert.match(await page.locator("#extraClipList").innerText(), /starts 0\.35 s/, "saved clip start time should be restored");
 
 
 
