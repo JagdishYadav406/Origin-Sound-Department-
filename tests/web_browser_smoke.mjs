@@ -208,14 +208,16 @@ try {
   assert.equal(await page.locator("#exportAutonomousEdit").isEnabled(), true, "valid edit package should be exportable");
   assert.equal(await page.locator("#applyAutonomousEdit").isEnabled(), true, "valid sound cue plan should be stageable");
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "building a draft must not change mix settings");
-  await page.locator("#applyAutonomousEdit").click();
-  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Cue staging complete"), null, { timeout: 5000 });
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /Full OSD tool coverage and readiness/);
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /dialogue import/);
+  assert.match(await page.locator("#autonomousEditSummary").innerText(), /project JSON save\/load/);
+  assert.equal(await page.locator("#prepareAutonomousWorkspaces").isEnabled(), true, "full-tool safe preparation should be enabled for a current draft");
+  await page.locator("#prepareAutonomousWorkspaces").click();
+  await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Safe preparation finished"), null, { timeout: 5000 });
   assert.match(await page.locator("#videoCueList").innerText(), /restrained musical bed/);
-  assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "staging cue notes must not change mix settings");
-  assert.equal(await page.locator("#stageAutonomousPicturePlan").isEnabled(), true, "reviewable AI scene boundaries should be stageable after draft creation");
-  await page.locator("#stageAutonomousPicturePlan").click();
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "scene boundaries should create two retained picture intervals in the synthetic fixture");
-  assert.match(await page.locator("#autonomousEditStatus").innerText(), /All source intervals remain included/);
+  assert.match(await page.locator("#autonomousEditStatus").innerText(), /no mix settings or source media were changed/);
+  assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "workspace preparation must not change mix settings");
   while (await page.locator('#pictureTimelineList button[aria-label^="Remove picture interval"]').count()) {
     await page.locator('#pictureTimelineList button[aria-label^="Remove picture interval"]').first().click();
   }

@@ -195,6 +195,9 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("alignmentConfirmed&&!!$('aiTimelineAligned').checked", self.inline_script)
         self.assertIn("if(!autonomousEditDraftIsCurrent())", self.inline_script)
         self.assertIn("Draft is stale: source, analysis, mode, or audio alignment changed", self.inline_script)
+        self.assertIn("function captureAutonomousToolState()", self.inline_script)
+        self.assertIn("autonomousToolStateMatches(c.toolState)", self.inline_script)
+        self.assertIn("every mix control, loaded track source, extra clip, and local sound-library index", self.html)
         self.assertIn("limitSkipped", self.inline_script)
         self.assertIn("Source video, audio tracks and mix settings are unchanged.", self.inline_script)
 
@@ -204,9 +207,33 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("defaultAction:'KEEP_ALL_SOURCE_INTERVALS'", self.inline_script)
         self.assertIn("executed:false", self.inline_script)
         self.assertIn("function buildPictureTimeline()", self.inline_script)
-        self.assertIn("buildPictureTimeline();$('autonomousEditStatus').textContent='AI scene boundaries staged", self.inline_script)
+        self.assertIn("const boundaries=autonomousEditDraft.pictureEditPlan.proposedBoundariesSeconds", self.inline_script)
+        self.assertIn("proposed interval is shorter than 120 ms", self.inline_script)
+        self.assertIn("Prepare all OSD tool workspaces", self.html)
+        self.assertIn("autonomousEditDraft.toolCoverage", self.inline_script)
+        self.assertIn("range collapses after clamping to video duration", self.inline_script)
+        self.assertIn("recommendedTrack", self.inline_script)
         self.assertIn("all_source_intervals_retained=true source_media_modified=false", self.inline_script)
         self.assertIn("All source intervals remain included", self.html)
+
+    def test_autonomous_tool_coverage_lists_all_production_workspaces(self):
+        for tool in ("media-separation", "dialogue-refinement", "video-study",
+                     "extra-timeline-clips", "ai-service-controls", "ai-plan-exports",
+                     "source-integrity", "picture-edit", "dialogue", "music", "sfx",
+                     "ambience", "sound-library", "mix-qc", "video-export",
+                     "project-evidence"):
+            self.assertIn("id:'" + tool + "'", self.inline_script)
+        self.assertIn("Prepare all OSD tool workspaces", self.html)
+        self.assertIn("autonomousEditDraft.toolCoverage", self.inline_script)
+        self.assertIn("processing_settings_changed=false source_media_modified=false", self.inline_script)
+
+    def test_ambiguous_autonomous_cues_are_not_auto_routed(self):
+        self.assertIn("function recommendTrackForCategory(category)", self.inline_script)
+        self.assertIn("'manual-review'", self.inline_script)
+        self.assertIn("Choose track manually — category unclear", self.inline_script)
+        self.assertIn("No automatic track assignment", self.inline_script)
+        self.assertIn("Safe preparation partially completed", self.inline_script)
+        self.assertIn("candidate row(s)", self.inline_script)
 
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
