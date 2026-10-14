@@ -218,6 +218,9 @@ try {
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "scene boundaries should create two retained picture intervals in the synthetic fixture");
   assert.match(await page.locator("#autonomousEditStatus").innerText(), /no mix settings or source media were changed/);
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "workspace preparation must not change mix settings");
+  await page.locator("#continueAutonomousWorkflow").click();
+  assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Review checkpoint: inspect each loaded source preview/);
+  assert.equal(await page.locator("#render").isDisabled(), true, "autonomous runner must not render before the track-review checkpoint");
   while (await page.locator('#pictureTimelineList button[aria-label^="Remove picture interval"]').count()) {
     await page.locator('#pictureTimelineList button[aria-label^="Remove picture interval"]').first().click();
   }
