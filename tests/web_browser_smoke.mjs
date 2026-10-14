@@ -243,6 +243,13 @@ try {
   assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "review test must remove staged intervals before project round-trip assertions");
   await page.locator("#clearVideoCues").click(); // Keep later project round-trip assertions isolated from this feature test.
 
+  // With no current analysis, the autonomous runner should choose the free local
+  // visual heuristic rather than require a paid model or bypass connected-AI consent.
+  await page.locator("#clearAIResults").click();
+  await page.locator("#continueAutonomousWorkflow").click();
+  assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Started the free local video-analysis fallback/);
+  await page.waitForFunction(() => (document.querySelector("#aiAnalysisStatus")?.textContent || "").includes("Free local video scan complete"), null, { timeout: 15000 });
+  assert.match(await page.locator("#aiAnalysisStatus").innerText(), /no media uploaded/);
 
   // Verify the separate, explicitly consented audio-aware request path as well.
   await page.locator("#aiAudioFile").setInputFiles({

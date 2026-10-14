@@ -284,6 +284,12 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("if(tryAutonomousSafetyTrim())", self.inline_script)
         self.assertIn("safety-only automatic master attenuation", self.html)
 
+    def test_autonomous_runner_starts_free_local_video_analysis_when_no_result_exists(self):
+        self.assertIn("if(aiAnalyzing){status.textContent='Analysis is still running.", self.inline_script)
+        self.assertIn("$('runLocalVideoAnalysis').click()", self.inline_script)
+        self.assertIn("uploads nothing, and uses no AI credits", self.inline_script)
+        self.assertIn("connected AI still requires its separate consent", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
