@@ -212,6 +212,14 @@ try {
   await page.waitForFunction(() => (document.querySelector("#autonomousEditStatus")?.textContent || "").includes("Cue staging complete"), null, { timeout: 5000 });
   assert.match(await page.locator("#videoCueList").innerText(), /restrained musical bed/);
   assert.equal(await page.locator("#gain-dialogue").inputValue(), gainBeforeAutonomousDraft, "staging cue notes must not change mix settings");
+  assert.equal(await page.locator("#stageAutonomousPicturePlan").isEnabled(), true, "reviewable AI scene boundaries should be stageable after draft creation");
+  await page.locator("#stageAutonomousPicturePlan").click();
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 2, "scene boundaries should create two retained picture intervals in the synthetic fixture");
+  assert.match(await page.locator("#autonomousEditStatus").innerText(), /All source intervals remain included/);
+  while (await page.locator("#pictureTimelineList button[aria-label^="Remove picture interval"]").count()) {
+    await page.locator("#pictureTimelineList button[aria-label^="Remove picture interval"]").first().click();
+  }
+  assert.equal(await page.locator("#pictureTimelineList .cue-row").count(), 0, "review test must remove staged intervals before project round-trip assertions");
   await page.locator("#clearVideoCues").click(); // Keep later project round-trip assertions isolated from this feature test.
 
 
