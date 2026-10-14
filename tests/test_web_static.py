@@ -298,6 +298,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("$('combineAIResults').click()", self.inline_script)
         self.assertIn("shared 00:00 start is not confirmed", self.inline_script)
 
+    def test_autonomous_tool_coverage_refreshes_after_workspace_preparation(self):
+        self.assertIn("data-tool-coverage-id", self.inline_script)
+        self.assertIn("function refreshAutonomousToolCoverageDisplay()", self.inline_script)
+        self.assertIn("refreshAutonomousToolCoverageDisplay();updateAutonomousEditControls()", self.inline_script)
+        self.assertIn("AUTONOMOUS_WORKSPACES_PREPARED", self.inline_script)
+        self.assertIn("processing_settings_changed=false source_media_modified=false", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
@@ -383,6 +390,13 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("sampledFrameTimesSeconds:Array.isArray(aiLastResult.sampledFrameTimesSeconds)?aiLastResult.sampledFrameTimesSeconds.slice(0,500)", self.inline_script)
         self.assertIn("scout_frames=\'+scoutCount", self.inline_script)
 
+    def test_autonomous_picture_plan_rejects_timeline_changes_since_draft(self):
+        self.assertIn("function autonomousPictureTimelineKey(){return JSON.stringify(pictureSegments.map(x=>[x.start,x.end]))}", self.inline_script)
+        self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("autonomousEditDraftContext.pictureTimelineKey!==autonomousPictureTimelineKey()", self.inline_script)
+        self.assertIn("existing edits were preserved", self.inline_script)
+        self.assertIn("pictureSegments=segments;autonomousEditDraftContext.pictureTimelineKey=autonomousPictureTimelineKey()", self.inline_script)
+
     def test_picture_edit_timeline_is_bounded_and_non_destructive(self):
         for element_id in ("pictureEditTimeline", "buildPictureTimeline", "splitPictureAtPlayhead", "resetPictureTimeline", "undoPictureEdit", "exportPictureEdits", "cancelPictureEditExport"):
             self.assertIn(f'id="{element_id}"', self.html)
@@ -411,13 +425,6 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("importedPicture.segments.length>200", self.inline_script)
         self.assertIn("Picture intervals must be sorted and non-overlapping", self.inline_script)
 
-    
-    def test_autonomous_picture_plan_rejects_timeline_changes_since_draft(self):
-        self.assertIn("function autonomousPictureTimelineKey(){return JSON.stringify(pictureSegments.map(x=>[x.start,x.end]))}", self.inline_script)
-        self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)
-        self.assertIn("autonomousEditDraftContext.pictureTimelineKey!==autonomousPictureTimelineKey()", self.inline_script)
-        self.assertIn("existing edits were preserved", self.inline_script)
-        self.assertIn("pictureSegments=segments;autonomousEditDraftContext.pictureTimelineKey=autonomousPictureTimelineKey()", self.inline_script)
 
     def test_tool_navigation_targets_exist_and_video_outputs_are_separate(self):
         nav = re.search(r'<nav class="feature-nav"[^>]*>(.*?)</nav>', self.html, re.S)
