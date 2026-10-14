@@ -395,6 +395,8 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("pictureTimelineKey:autonomousPictureTimelineKey()", self.inline_script)
         self.assertIn("autonomousEditDraftContext.pictureTimelineKey!==autonomousPictureTimelineKey()", self.inline_script)
         self.assertIn("existing edits were preserved", self.inline_script)
+        self.assertIn("Preparation blocked: the picture timeline changed after this plan was built", self.inline_script)
+        self.assertIn("pictureTimelineKey!==autonomousPictureTimelineKey()){$('autonomousEditStatus').textContent='Preparation blocked", self.inline_script)
         self.assertIn("pictureSegments=segments;autonomousEditDraftContext.pictureTimelineKey=autonomousPictureTimelineKey()", self.inline_script)
 
     def test_picture_edit_timeline_is_bounded_and_non_destructive(self):
