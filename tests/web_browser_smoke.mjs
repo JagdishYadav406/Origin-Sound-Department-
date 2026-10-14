@@ -591,7 +591,7 @@ try {
   assert.equal(await page.locator("#extraClipList button").count(), 1, "restored project should reinstate its additional timeline clip");
   assert.match(await page.locator("#extraClipList").innerText(), /osd-roundtrip-clip\.wav/);
   assert.match(await page.locator("#extraClipList").innerText(), /SHA-256 verified/);
-  assert.equal(await page.locator("#extraClipOffset").inputValue(), "0.35", "saved clip start time should be restored");
+  assert.match(await page.locator("#extraClipList").innerText(), /starts 0\.35 s/, "saved clip start time should be restored");
 
 
 
