@@ -246,6 +246,8 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("trackEvidence:autonomousTrackEvidenceIsCurrent()", self.inline_script)
         self.assertIn("No current local sample-level scan exists", self.inline_script)
         self.assertIn("Track evidence is stale because a source file changed", self.inline_script)
+        self.assertIn("sourceFingerprintStatus", self.inline_script)
+        self.assertIn("report.windowSeconds.toFixed(2)", self.inline_script)
 
     def test_autonomous_draft_requires_fresh_signal_evidence_when_tracks_are_loaded(self):
         self.assertIn("trackEvidenceReady=!loadedTracks||autonomousTrackEvidenceIsCurrent()", self.inline_script)
