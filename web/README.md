@@ -4,7 +4,9 @@ Origin Sound Department is a self-contained browser-based soundtrack workspace. 
 
 ## Available production tools
 
-- Four source tracks: Dialogue, Music, SFX and Ambience.
+- Four primary source tracks: Dialogue, Music, SFX and Ambience, plus additional independently timed clips that can be added to any of the four lanes without replacing the primary source.
+- Each additional clip supports a start offset, clip level, fade-in, fade-out and individual removal. The destination track's EQ, high-pass, compressor, pan, mute/solo and master processing also apply to its clips.
+- Additional clip audio is held in session memory. Project JSON records clip metadata and settings but does not embed clip media or automatically restore clip audio after reload; re-add the source clips when reopening a project.
 - Local audio import, browser decoding and SHA-256 source fingerprints where supported.
 - Track gain, mute/solo, three-band peaking EQ, high-pass filtering, linked-stereo compression, pan/balance, start offset, trim and fades.
 - Optional per-track low-level noise gate with threshold and attenuation controls, off by default. This can reduce quieter material between louder passages; it is not spectral denoising, cannot reliably separate speech from noise, and may attenuate quiet speech or effects if set too aggressively.
