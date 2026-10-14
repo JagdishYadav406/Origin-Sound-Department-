@@ -197,6 +197,16 @@ try {
   assert.ok(observedVisualRequest.frames.every(frame => Number.isFinite(frame.timestampSeconds) && frame.timestampSeconds >= 0 && frame.timestampSeconds <= observedVisualRequest.durationSeconds), "frame timestamps must stay within the selected video duration");
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /Mock integration: calm opening/);
   assert.match(await page.locator("#aiAnalysisResults").innerText(), /restrained musical bed/);
+  const safetyTrimTargets = await page.evaluate(() => ({
+    normal: autonomousSafetyTrimTarget(2.3, 0, -18, 0.5),
+    noClipping: autonomousSafetyTrimTarget(-0.1, 0, -18, 0.5),
+    gainFloor: autonomousSafetyTrimTarget(2.3, -18, -18, 0.5)
+  }));
+  assert.deepEqual(safetyTrimTargets.normal, { target: -3.5, attenuation: 3.5, headroomDb: 1 },
+    "clipping recovery should lower master gain enough for at least 1 dB sample headroom, rounded downward");
+  assert.equal(safetyTrimTargets.noClipping, null, "safety trim must not run when the measured sample peak is below clipping");
+  assert.equal(safetyTrimTargets.gainFloor, null, "safety trim must refuse when master gain cannot be lowered enough");
+
   assert.equal(await page.locator("#exportAIPlanJSON").isEnabled(), true);
   assert.equal(await page.locator("#exportAICuesCSV").isEnabled(), true);
   assert.equal(await page.locator("#buildAutonomousEdit").isEnabled(), true, "autonomous edit draft should enable only after video analysis completes");
