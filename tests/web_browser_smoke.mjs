@@ -257,6 +257,14 @@ try {
     mimeType: "audio/wav",
     buffer: makePcmWav({ seconds: 0.5, frequency: 220, amplitude: 0.04 })
   });
+  // Explicitly confirm alignment and let the runner choose the free local audio
+  // measurement path before testing the separate consented connected-AI request.
+  await page.locator("#aiTimelineAligned").check();
+  await page.locator("#continueAutonomousWorkflow").click();
+  assert.match(await page.locator("#autonomousWorkflowStatus").innerText(), /Started free local audio analysis for the selected audio file/);
+  await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Free local audio measurement complete"), null, { timeout: 15000 });
+  assert.match(await page.locator("#audioAIStatus").innerText(), /No upload, account, AI model, or credits used/);
+  await page.locator("#aiTimelineAligned").uncheck();
   await page.locator("#aiAudioConsent").check();
   await page.locator("#analyzeAudioAI").click();
   await page.waitForFunction(() => (document.querySelector("#audioAIStatus")?.textContent || "").includes("Audio analysis complete"), null, { timeout: 15000 });
