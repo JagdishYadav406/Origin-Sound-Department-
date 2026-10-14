@@ -305,6 +305,12 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("AUTONOMOUS_WORKSPACES_PREPARED", self.inline_script)
         self.assertIn("processing_settings_changed=false source_media_modified=false", self.inline_script)
 
+    def test_autonomous_library_matching_reports_only_verified_execution(self):
+        self.assertIn("if($('matchSoundCues').disabled){failures.push('sound-library matching: control is disabled; no execution claimed')", self.inline_script)
+        self.assertIn("renderedCueRows===expectedCueRows", self.inline_script)
+        self.assertIn("execution uncertain: rendered cue rows did not match the current analysis", self.inline_script)
+        self.assertIn("not searched: local assets or valid cues were unavailable", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
