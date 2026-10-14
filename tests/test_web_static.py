@@ -282,7 +282,7 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("targetSamplePeakHeadroomDb:1", self.inline_script)
         self.assertIn("other_processors_changed=false", self.inline_script)
         self.assertIn("if(tryAutonomousSafetyTrim())", self.inline_script)
-        self.assertIn("Safety-only automatic master attenuation", self.html)
+        self.assertIn("safety-only automatic master attenuation", self.html)
 
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
