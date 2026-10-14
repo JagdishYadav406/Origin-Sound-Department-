@@ -276,6 +276,10 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("Guided workflow reached its final checkpoint", self.inline_script)
         self.assertIn("Download receipt, saved-file contents, and physical-device playback remain unverified", self.inline_script)
         self.assertIn("do not treat this as release certification", self.inline_script)
+        self.assertIn("matching OSD export QC PASS and output-created evidence recorded", self.inline_script)
+        self.assertIn("matching export QC PASS and output-created evidence are not both present", self.inline_script)
+        self.assertIn("PICTURE_EDIT_EXPORT_QC status=PASS", self.inline_script)
+        self.assertIn("VIDEO_MIX_EXPORT_QC status=PASS", self.inline_script)
 
     def test_autonomous_safety_trim_is_opt_in_attenuation_only(self):
         self.assertIn('id="autonomousSafetyTrimEnabled"', self.html)
