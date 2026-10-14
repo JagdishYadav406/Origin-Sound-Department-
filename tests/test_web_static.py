@@ -216,6 +216,17 @@ class OSDWebStaticSafetyTests(unittest.TestCase):
         self.assertIn("all_source_intervals_retained=true source_media_modified=false", self.inline_script)
         self.assertIn("All source intervals remain included", self.html)
 
+    def test_autonomous_tool_coverage_lists_all_production_workspaces(self):
+        for tool in ("media-separation", "dialogue-refinement", "video-study",
+                     "extra-timeline-clips", "ai-service-controls", "ai-plan-exports",
+                     "source-integrity", "picture-edit", "dialogue", "music", "sfx",
+                     "ambience", "sound-library", "mix-qc", "video-export",
+                     "project-evidence"):
+            self.assertIn("id:'" + tool + "'", self.inline_script)
+        self.assertIn("Prepare all OSD tool workspaces", self.html)
+        self.assertIn("autonomousEditDraft.toolCoverage", self.inline_script)
+        self.assertIn("processing_settings_changed=false source_media_modified=false", self.inline_script)
+
     def test_multi_clip_timeline_adds_clips_without_replacing_main_tracks(self):
         for element_id in ("multiClipSection", "extraClipTrack", "extraClipOffset",
                            "extraClipGain", "extraClipFadeIn", "extraClipFadeOut",
